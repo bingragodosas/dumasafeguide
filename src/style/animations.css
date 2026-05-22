@@ -1,0 +1,81 @@
+/* src/style/animations.css */
+
+/* ── Hero background Ken Burns effect ── */
+.hero {
+  animation: kenburns 8s ease-in-out infinite alternate;
+}
+
+@keyframes kenburns {
+  from { transform: scale(1)    translate(0,   0);   }
+  to   { transform: scale(1.12) translate(-3%, -2%); }
+}
+
+/* ── Form fade-in (Login, Signup) ── */
+.form-container {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── General fade in ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Slide in from left ── */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── Slide in from right ── */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── Pulse glow (used on status dots, badges) ── */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── Spinner (used in ProtectedRoute loading) ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Utility animation classes ── */
+.animate-fadeIn      { animation: fadeIn      0.5s ease-out both; }
+.animate-fadeInUp    { animation: fadeInUp    0.6s ease-out both; }
+.animate-slideLeft   { animation: slideInLeft 0.5s ease-out both; }
+.animate-slideRight  { animation: slideInRight 0.5s ease-out both; }
+
+/* Stagger helpers — add delay on children */
+.stagger > *:nth-child(1) { animation-delay: 0.0s; }
+.stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger > *:nth-child(3) { animation-delay: 0.2s; }
+.stagger > *:nth-child(4) { animation-delay: 0.3s; }
+.stagger > *:nth-child(5) { animation-delay: 0.4s; }
