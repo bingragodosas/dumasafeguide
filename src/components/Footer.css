@@ -1,471 +1,589 @@
-/* src/components/Footer.css */
+/* ═══════════════════════════════════════════════════════
+   Footer.css  —  DumaSafeGuide
+   Refined: keeps your glassmorphism cards + gradient border,
+   removes Portals, adds status strip + card-style hotlines,
+   matches --ft-page-px site-wide margin token.
+═══════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
-.ft {
-  background: #04101c;
-  border-top: 1px solid rgba(74, 144, 217, .2);
-  font-family: 'DM Sans', sans-serif;
-  color: #F8FAFC;
-  position: relative;
-  overflow: hidden;
+/* ─────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────── */
+:root {
+  /* Matches the site-wide page margin used in Navbar, FacilityLocator, etc. */
+  --ft-page-px : clamp(24px, 6vw, 148px);
+
+  --ft-bg      : #04101c;
+  --ft-cyan    : #00c8e0;
+  --ft-red     : #e8372a;
+  --ft-blue    : #60B4FF;
+  --ft-text    : rgba(220, 232, 248, 0.65);
+  --ft-text-hi : #F8FAFC;
+  --ft-text-lo : rgba(220, 232, 248, 0.28);
+  --ft-border  : rgba(74, 144, 217, 0.14);
+  --ft-card-bg : rgba(4, 16, 28, 0.30);
+  --ft-font    : 'DM Sans', sans-serif;
+  --ft-display : 'Syne', sans-serif;
 }
 
+/* ─────────────────────────────────────────────
+   ROOT SHELL
+───────────────────────────────────────────── */
+.ft {
+  background  : var(--ft-bg);
+  font-family : var(--ft-font);
+  color       : var(--ft-text);
+  position    : relative;
+  overflow    : hidden;
+  /* Glowing gradient top border — your original signature */
+  border-top  : 1px solid rgba(74, 144, 217, 0.20);
+}
+
+/* Gradient accent line over the border */
 .ft::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 1px;
+  content  : '';
+  position : absolute;
+  top      : 0;
+  left     : 10%;
+  right    : 10%;
+  height   : 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(214, 40, 40, .6),
-    rgba(158, 131, 194, 0.5),
+    rgba(214, 40, 40, 0.65),
+    rgba(158, 131, 194, 0.50),
+    rgba(0, 200, 224, 0.45),
     transparent
   );
+  z-index  : 2;
 }
 
-/* ── Background scrim image ── */
+/* ─────────────────────────────────────────────
+   BACKGROUND SCRIM (your original approach)
+───────────────────────────────────────────── */
 .ft-scrim {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  z-index: 0;
+  position            : absolute;
+  inset               : 0;
+  background-size     : cover;
+  background-position : center bottom;
+  background-repeat   : no-repeat;
+  pointer-events      : none;
+  z-index             : 0;
 }
 .ft-scrim::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
+  content    : '';
+  position   : absolute;
+  inset      : 0;
+  background : linear-gradient(
     to bottom,
-    rgba(4, 16, 28, 0.72) 0%,
-    rgba(4, 16, 28, 0.50) 50%,
-    rgba(4, 16, 28, 0.30) 100%
+    rgba(4, 16, 28, 0.80) 0%,
+    rgba(4, 16, 28, 0.58) 50%,
+    rgba(4, 16, 28, 0.38) 100%
   );
 }
 
-/* ── Glow orbs ── */
-.ft-glow {
-  position: absolute;
-  bottom: -120px;
-  left: -80px;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(29, 53, 87, .3) 0%, transparent 65%);
+/* ─────────────────────────────────────────────
+   GLOW ORBS (your original, slightly expanded)
+───────────────────────────────────────────── */
+.ft-glow-left {
+  position      : absolute;
+  bottom        : -140px;
+  left          : -100px;
+  width         : 480px;
+  height        : 480px;
+  border-radius : 50%;
+  background    : radial-gradient(circle, rgba(29, 53, 87, 0.32) 0%, transparent 65%);
   pointer-events: none;
+  z-index       : 0;
 }
 .ft-glow-right {
-  position: absolute;
-  top: -80px;
-  right: -60px;
-  width: 300px;
-  height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(214, 40, 40, .1) 0%, transparent 65%);
+  position      : absolute;
+  top           : -80px;
+  right         : -60px;
+  width         : 340px;
+  height        : 340px;
+  border-radius : 50%;
+  background    : radial-gradient(circle, rgba(214, 40, 40, 0.11) 0%, transparent 65%);
   pointer-events: none;
+  z-index       : 0;
 }
 
+/* ─────────────────────────────────────────────
+   INNER WRAPPER
+   — padding uses the site-wide margin token
+───────────────────────────────────────────── */
 .ft-inner {
-  position: relative;
-  z-index: 1;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 24px;
+  position   : relative;
+  z-index    : 1;
+  max-width  : 1440px;
+  margin     : 0 auto;
+  padding    : 0 var(--ft-page-px) 36px;
 }
 
-/* ══════════════════════════════════════════
-   HOTLINES BAR
-══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   STATUS STRIP  (new addition — feels live, purposeful)
+═══════════════════════════════════════════════════════ */
+.ft-status-strip {
+  display         : flex;
+  align-items     : center;
+  justify-content : space-between;
+  padding         : 11px 0;
+  border-bottom   : 1px solid var(--ft-border);
+  margin-bottom   : 28px;
+  font-size       : 11px;
+  font-weight     : 500;
+  letter-spacing  : 0.06em;
+}
+.ft-status-left,
+.ft-status-right {
+  display     : flex;
+  align-items : center;
+  gap         : 7px;
+}
+.ft-status-dot {
+  width         : 7px;
+  height        : 7px;
+  border-radius : 50%;
+  background    : #22c55e;
+  flex-shrink   : 0;
+  animation     : statusPulse 2.4s ease-in-out infinite;
+}
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(34, 197, 94, 0.55); }
+  50%      { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0); }
+}
+.ft-status-city { color: var(--ft-text-hi); font-weight: 600; }
+.ft-status-sep  { color: var(--ft-text-lo); }
+.ft-status-text { color: var(--ft-text); }
+.ft-status-right {
+  font-size      : 10px;
+  letter-spacing : 0.10em;
+  text-transform : uppercase;
+  color          : var(--ft-text-lo);
+}
 
+/* ═══════════════════════════════════════════════════════
+   HOTLINES  — card design replacing the pills
+   Keeps the pulse ring, adds bigger numbers + icon box
+═══════════════════════════════════════════════════════ */
 .ft-hotlines {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(74, 144, 217, .12);
+  margin-bottom : 36px;
 }
-
+.ft-hotlines-head {
+  display       : flex;
+  align-items   : center;
+  gap           : 8px;
+  margin-bottom : 14px;
+}
 .ft-hotlines-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: #60B4FF;
+  font-family    : var(--ft-display);
+  font-size      : 12px;
+  font-weight    : 700;
+  color          : var(--ft-text-hi);
+  letter-spacing : -0.01em;
 }
-
 .ft-hotlines-hint {
-  font-size: 10px;
-  color: rgba(220, 232, 248, .25);
-  margin-left: auto;
-  letter-spacing: .05em;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  margin-left    : auto;
+  font-size      : 10px;
+  font-weight    : 500;
+  letter-spacing : 0.10em;
+  text-transform : uppercase;
+  color          : var(--ft-text-lo);
 }
 
-/* Hotline pill */
-.ft-hotline-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  background: rgba(4, 16, 28, .45);
-  border: 1px solid rgba(74, 144, 217, .2);
-  border-radius: 20px;
-  padding: 5px 12px;
-  color: var(--hp-color);
-  text-decoration: none;
-  transition: background 0.18s, border-color 0.18s, transform 0.12s, box-shadow 0.18s;
-  cursor: pointer;
+.ft-hotlines-row {
+  display   : flex;
+  gap       : 10px;
+  flex-wrap : wrap;
+}
+
+/* Hotline card */
+.ft-hotline-card {
+  display         : flex;
+  align-items     : center;
+  gap             : 12px;
+  padding         : 13px 18px;
+  background      : var(--hc-bg, rgba(4,16,28,0.35));
+  border          : 1px solid color-mix(in srgb, var(--hc-color) 28%, transparent);
+  border-radius   : 14px;
+  text-decoration : none;
+  cursor          : pointer;
+  flex            : 1;
+  min-width       : 130px;
+  max-width       : 210px;
+  /* glassmorphism — consistent with your card style */
+  backdrop-filter         : blur(12px);
+  -webkit-backdrop-filter : blur(12px);
+  box-shadow : inset 0 1px 0 rgba(255,255,255,0.05),
+               0 4px 20px rgba(0,0,0,0.22);
+  transition : transform 0.18s ease,
+               background 0.18s ease,
+               box-shadow 0.18s ease,
+               border-color 0.18s ease;
   -webkit-tap-highlight-color: transparent;
 }
-
-.ft-hotline-pill:hover {
-  background: rgba(4, 16, 28, .75);
-  border-color: var(--hp-color);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--hp-color) 35%, transparent);
-  transform: translateY(-1px);
+.ft-hotline-card:hover {
+  transform    : translateY(-2px);
+  background   : color-mix(in srgb, var(--hc-color) 14%, rgba(4,16,28,0.55));
+  border-color : var(--hc-color);
+  box-shadow   : inset 0 1px 0 rgba(255,255,255,0.07),
+                 0 6px 24px rgba(0,0,0,0.30),
+                 0 0 14px color-mix(in srgb, var(--hc-color) 22%, transparent);
 }
+.ft-hotline-card:active { transform: scale(0.96); }
 
-.ft-hotline-pill:active {
-  transform: scale(0.95);
-}
-
-.ft-hotline-icon {
-  opacity: 0.6;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-}
-.ft-hotline-pill:hover .ft-hotline-icon { opacity: 1; }
-
-.ft-hotline-label {
-  opacity: .7;
-  font-size: 10px;
-}
-.ft-hotline-num {
-  color: white;
-  font-weight: 700;
-  font-size: 13px;
-}
-
-/* Pulse ring on Emergency pill */
-.ft-hotline-pill--pulse {
+/* Pulse ring — Emergency card */
+.ft-hotline-card.is-pulse {
   position: relative;
 }
-.ft-hotline-pill--pulse::before {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 68, 68, .5);
-  animation: hotline-pulse 2s ease-out infinite;
+.ft-hotline-card.is-pulse::before {
+  content       : '';
+  position      : absolute;
+  inset         : -3px;
+  border-radius : 16px;
+  border        : 1px solid color-mix(in srgb, var(--hc-color) 55%, transparent);
+  animation     : hotlinePulse 2s ease-out infinite;
   pointer-events: none;
 }
-@keyframes hotline-pulse {
+@keyframes hotlinePulse {
   0%   { opacity: 1; transform: scale(1); }
-  70%  { opacity: 0; transform: scale(1.12); }
-  100% { opacity: 0; transform: scale(1.12); }
+  70%  { opacity: 0; transform: scale(1.10); }
+  100% { opacity: 0; transform: scale(1.10); }
 }
 
-/* ══════════════════════════════════════════
-   MAIN GRID — Desktop (4 columns)
-══════════════════════════════════════════ */
+.ft-hc-icon-wrap {
+  width         : 36px;
+  height        : 36px;
+  border-radius : 10px;
+  background    : color-mix(in srgb, var(--hc-color) 16%, transparent);
+  display       : flex;
+  align-items   : center;
+  justify-content: center;
+  color         : var(--hc-color);
+  flex-shrink   : 0;
+}
+.ft-hc-body {
+  display        : flex;
+  flex-direction : column;
+  gap            : 1px;
+}
+.ft-hc-num {
+  font-family    : var(--ft-display);
+  font-size      : 20px;
+  font-weight    : 800;
+  line-height    : 1;
+  color          : var(--hc-color);
+  letter-spacing : -0.02em;
+}
+.ft-hc-label {
+  font-size      : 10px;
+  font-weight    : 500;
+  letter-spacing : 0.08em;
+  text-transform : uppercase;
+  color          : var(--ft-text-lo);
+}
 
+/* ═══════════════════════════════════════════════════════
+   MAIN GRID
+   — 3 cols: brand (2fr) + 2 nav columns (1fr each)
+   — Portals column removed; ProtectedRoute handles routing
+═══════════════════════════════════════════════════════ */
 .ft-main {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 20px;
-  padding: 52px 0 44px;
+  display               : grid;
+  grid-template-columns : 2fr 1fr 1fr;
+  gap                   : 20px;
+  padding               : 8px 0 44px;
 }
 
+/* Glassmorphism card on every direct child — your original signature */
 .ft-main > * {
-  background: rgba(4, 16, 28, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 24px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 4px 24px rgba(0, 0, 0, 0.2);
+  background              : var(--ft-card-bg);
+  border                  : 1px solid rgba(255, 255, 255, 0.07);
+  border-radius           : 16px;
+  padding                 : 26px;
+  backdrop-filter         : blur(14px);
+  -webkit-backdrop-filter : blur(14px);
+  box-shadow              : inset 0 1px 0 rgba(255,255,255,0.05),
+                            0 4px 28px rgba(0,0,0,0.22);
 }
 
-/* ── Brand column ── */
-.ft-brand-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+/* ─────────────────────────────────────────────
+   BRAND COLUMN
+───────────────────────────────────────────── */
+.ft-brand-lockup {
+  display         : inline-flex;
+  align-items     : center;
+  gap             : 12px;
+  text-decoration : none;
+  margin-bottom   : 16px;
 }
 .ft-brand-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+  width      : 52px;
+  height     : 52px;
+  object-fit : contain;
+  filter     : drop-shadow(0 0 7px rgba(0,200,224,0.35));
 }
 .ft-brand-name {
-  font-size: 22px;
-  font-weight: 800;
+  font-family    : var(--ft-display);
+  font-size      : 21px;
+  font-weight    : 800;
+  color          : var(--ft-text-hi);
+  letter-spacing : -0.02em;
+  line-height    : 1;
 }
-.ft-brand-name em {
-  color: #FF5555;
-  font-style: normal;
-}
+.ft-brand-name em     { color: #FF5555; font-style: normal; }
+.ft-brand-name strong { color: var(--ft-cyan); font-weight: 800; }
+
 .ft-brand-desc {
-  color: rgba(220, 232, 248, .7);
-  line-height: 1.7;
-  max-width: 300px;
-  font-size: 14px;
+  font-size  : 13.5px;
+  font-weight: 300;
+  line-height: 1.75;
+  color      : var(--ft-text);
+  max-width  : 300px;
+  margin-bottom: 18px;
 }
 
-/* ── Mobile quick-dial (hidden on desktop) ── */
-.ft-mobile-dial {
-  display: none;
-  margin-top: 20px;
-}
-.ft-mobile-dial-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .16em;
+/* Location badge */
+.ft-brand-badge {
+  display      : inline-flex;
+  align-items  : center;
+  gap          : 7px;
+  font-size    : 10px;
+  font-weight  : 500;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #60B4FF;
-  margin-bottom: 10px;
+  color        : var(--ft-text-lo);
+  border       : 1px solid var(--ft-border);
+  background   : rgba(0,200,224,0.04);
+  border-radius: 20px;
+  padding      : 5px 12px;
 }
-.ft-mobile-dial-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.ft-mobile-dial-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(4, 16, 28, .5);
-  border: 1px solid color-mix(in srgb, var(--hp-color) 30%, transparent);
-  color: var(--hp-color);
-  text-decoration: none;
-  transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
-  -webkit-tap-highlight-color: transparent;
-}
-.ft-mobile-dial-btn:active { transform: scale(0.96); }
-.ft-mobile-dial-btn:hover {
-  background: rgba(4, 16, 28, .75);
-  box-shadow: 0 0 12px color-mix(in srgb, var(--hp-color) 25%, transparent);
-}
-.ft-mobile-dial-name {
-  font-size: 11px;
-  opacity: .7;
-}
-.ft-mobile-dial-num {
-  font-size: 15px;
-  font-weight: 800;
-  color: white;
-  margin-left: auto;
+.ft-badge-dot {
+  width         : 6px;
+  height        : 6px;
+  border-radius : 50%;
+  background    : #22c55e;
+  animation     : statusPulse 2.4s ease-in-out infinite;
+  flex-shrink   : 0;
 }
 
-/* ══════════════════════════════════════════
+/* ─────────────────────────────────────────────
    NAV COLUMNS
-══════════════════════════════════════════ */
+───────────────────────────────────────────── */
+.ft-nav-col {
+  display        : flex;
+  flex-direction : column;
+}
 
+/* Toggle button — desktop: visual heading only */
 .ft-col-toggle {
-  display: flex;
-  align-items: center;
+  all            : unset;
+  display        : flex;
+  align-items    : center;
   justify-content: space-between;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 16px;
-  width: 100%;
-  /* Desktop: heading only, not a button */
-  cursor: default;
-  pointer-events: none;
+  margin-bottom  : 16px;
+  cursor         : default;  /* not clickable on desktop */
+  width          : 100%;
 }
-
 .ft-col-head {
-  font-size: 11px;
-  font-weight: 800;
-  color: #60B4FF;
-  text-transform: uppercase;
-  letter-spacing: .14em;
+  font-family    : var(--ft-display);
+  font-size      : 11px;
+  font-weight    : 700;
+  letter-spacing : 0.16em;
+  text-transform : uppercase;
+  color          : var(--ft-blue);
+  position       : relative;
+  padding-bottom : 8px;
 }
-
+/* Cyan underline accent */
+.ft-col-head::after {
+  content       : '';
+  position      : absolute;
+  bottom        : 0; left: 0;
+  width         : 18px;
+  height        : 2px;
+  background    : var(--ft-cyan);
+  border-radius : 2px;
+}
 .ft-col-chevron {
-  font-size: 18px;
-  color: rgba(96, 180, 255, .4);
-  transition: transform 0.25s ease;
-  display: none; /* hidden on desktop */
+  display    : none; /* shown only on mobile */
+  color      : var(--ft-text-lo);
+  transition : transform 0.24s ease;
+  flex-shrink: 0;
 }
 
-/* ✅ Desktop: links always visible */
+/* Link list */
 .ft-col-links {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  max-height: 999px;
-  opacity: 1;
-  transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease;
+  list-style     : none;
+  display        : flex;
+  flex-direction : column;
+  gap            : 2px;
+  overflow       : hidden;
+  max-height     : 999px;    /* open on desktop */
 }
 
 .ft-col-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  color: rgba(220, 232, 248, .65);
+  display     : flex;
+  align-items : center;
+  gap         : 8px;
+  padding     : 6px 0;
+  color       : var(--ft-text);
   text-decoration: none;
-  font-size: 14px;
-  transition: color .15s, padding-left .15s;
+  font-size   : 13.5px;
+  border-radius: 4px;
+  transition  : color 0.15s ease, transform 0.15s ease;
 }
 .ft-col-link:hover {
-  color: white;
-  padding-left: 4px;
+  color     : var(--ft-text-hi);
+  transform : translateX(3px);
 }
+.ft-link-icon {
+  color      : var(--ft-text-lo);
+  display    : flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition : color 0.15s;
+}
+.ft-col-link:hover .ft-link-icon { color: var(--ft-cyan); }
 
-/* ══════════════════════════════════════════
-   BOTTOM BAR
-══════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   DIVIDER + BOTTOM BAR
+═══════════════════════════════════════════════════════ */
+.ft-rule {
+  height     : 1px;
+  background : linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74,144,217,0.18) 20%,
+    rgba(74,144,217,0.18) 80%,
+    transparent 100%
+  );
+  margin     : 0 0 22px;
+}
 
 .ft-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 22px 0;
-  border-top: 1px solid rgba(74, 144, 217, .1);
+  display         : flex;
+  justify-content : space-between;
+  align-items     : center;
+  flex-wrap       : wrap;
+  gap             : 10px;
+  padding-top     : 4px;
 }
 .ft-copy {
-  font-size: 12px;
-  color: rgba(220, 232, 248, .5);
-  margin: 0;
-}
-.ft-bottom-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.ft-badge {
-  background: rgba(96, 180, 255, .12);
-  border: 1px solid rgba(96, 180, 255, .3);
-  color: #60B4FF;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
+  font-size  : 12px;
+  color      : var(--ft-text-lo);
+  margin     : 0;
+  letter-spacing: 0.03em;
 }
 .ft-love {
-  font-size: 12px;
-  color: rgba(220, 232, 248, .45);
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  display     : flex;
+  align-items : center;
+  gap         : 5px;
+  font-size   : 12px;
+  color       : var(--ft-text-lo);
 }
 
-/* ══════════════════════════════════════════
-   RESPONSIVE — TABLET  (≤ 900px)
-══════════════════════════════════════════ */
-
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — TABLET  ≤ 900px
+═══════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
   .ft-main {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    padding: 36px 0 32px;
+    grid-template-columns : 1fr 1fr;
+    padding               : 8px 0 32px;
   }
+  /* Brand spans full width on top */
+  .ft-brand-col { grid-column: 1 / -1; }
 
-  /* Brand takes full width on top */
-  .ft-brand-col {
-    grid-column: 1 / -1;
-  }
+  .ft-hotlines-hint { display: none; }
 
-  .ft-hotlines-hint {
-    display: none;
+  .ft-hotline-card {
+    max-width : none;
+    flex      : 1 1 calc(50% - 5px);
   }
 }
 
-/* ══════════════════════════════════════════
-   RESPONSIVE — MOBILE  (≤ 640px)
-══════════════════════════════════════════ */
-
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE  ≤ 640px
+═══════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .ft-inner {
-    padding: 0 16px;
+  :root { --ft-page-px: 16px; }
+
+  .ft-inner { padding-bottom: 24px; }
+
+  /* Status strip: hide right side */
+  .ft-status-right { display: none; }
+
+  /* Hotlines: 2×2 grid */
+  .ft-hotlines-row {
+    display               : grid;
+    grid-template-columns : 1fr 1fr;
+    gap                   : 8px;
   }
-
-  /* Hotlines bar */
-  .ft-hotlines {
-    padding: 14px 0;
-    gap: 6px;
+  .ft-hotline-card {
+    max-width  : none;
+    min-width  : 0;
+    padding    : 11px 13px;
+    flex       : none;
   }
+  .ft-hc-num { font-size: 17px; }
 
-  /* Hide small pills on mobile — big dial grid replaces them */
-  .ft-hotline-pill   { display: none; }
-  .ft-hotlines-label { display: none; }
-  .ft-hotlines-hint  { display: none; }
-
-  /* Show the big quick-dial grid inside brand card */
-  .ft-mobile-dial { display: block; }
-
-  /* Single column stack */
+  /* Grid: single column */
   .ft-main {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 24px 0 20px;
+    grid-template-columns : 1fr;
+    gap                   : 10px;
+    padding               : 8px 0 20px;
   }
+  .ft-brand-col { grid-column: auto; }
+  .ft-brand-desc { max-width: 100%; }
 
-  .ft-brand-col {
-    grid-column: auto;
-  }
-
-  /* ── Accordion toggle: interactive on mobile ── */
+  /* ── Accordion nav on mobile ── */
   .ft-col-toggle {
-    cursor: pointer;
-    pointer-events: auto;    /* ✅ re-enable clicks on mobile */
-    padding: 4px 0;
-    margin-bottom: 0;        /* gap handled by open state */
+    cursor         : pointer;
+    pointer-events : auto;
+    padding        : 4px 0;
+    margin-bottom  : 0;
     -webkit-tap-highlight-color: transparent;
   }
-  .ft-col-toggle:active { opacity: 0.7; }
+  .ft-col-toggle:active { opacity: 0.72; }
 
-  /* Show chevron arrow on mobile */
-  .ft-col-chevron { display: block; }
+  .ft-col-head { padding-bottom: 0; }
+  .ft-col-head::after { display: none; }
 
-  /* ✅ Collapsed by default on mobile */
+  .ft-col-chevron { display: flex; }
+
+  /* Collapsed by default */
   .ft-col-links {
-    max-height: 0;
-    opacity: 0;
-    margin-top: 0;
+    max-height : 0;
+    transition : max-height 0.30s ease;
   }
 
-  /* ✅ Open state — toggled by React state adding .open class to .ft-nav-col */
-  .ft-nav-col.open .ft-col-links {
-    max-height: 400px;      /* large enough for any list */
-    opacity: 1;
-    margin-top: 8px;
+  /* Open state via React .is-open class */
+  .ft-nav-col.is-open .ft-col-links {
+    max-height   : 320px;
+    padding-top  : 8px;
+  }
+  .ft-nav-col.is-open .ft-col-chevron {
+    transform: rotate(180deg);
   }
 
-  /* Rotate chevron when open */
-  .ft-nav-col.open .ft-col-chevron {
-    transform: rotate(90deg);
-  }
-
-  /* Bottom bar stacks vertically */
   .ft-bottom {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 18px 0;
+    flex-direction : column;
+    align-items    : flex-start;
+    gap            : 6px;
   }
-
   .ft-brand-name { font-size: 18px; }
   .ft-brand-logo { width: 44px; height: 44px; }
+}
 
-  /* Bottom right wraps nicely */
-  .ft-bottom-right {
-    flex-wrap: wrap;
-    gap: 8px;
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — VERY SMALL  ≤ 380px  (OnePlus Nord)
+═══════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .ft-hotlines-row {
+    grid-template-columns: 1fr;
   }
+  .ft-hotline-card { max-width: none; }
+  .ft-status-strip { display: none; } /* too cramped */
+  .ft-brand-name   { font-size: 16px; }
 }

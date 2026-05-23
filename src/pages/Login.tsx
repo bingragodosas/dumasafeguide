@@ -11,12 +11,13 @@ const CSS = `
 
   .lg-root {
     min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start;
     font-family: 'Instrument Sans', sans-serif;
-    padding: 24px 24px 0;
+    padding: 32px 24px 48px;
     background: #080c14 url('/src/assets/loginbg.png') center/cover no-repeat fixed;
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
   }
 
   .lg-glow {
@@ -33,16 +34,9 @@ const CSS = `
     bottom: -200px; right: -120px;
   }
 
-  .lg-content {
-    flex: 1;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 100%; padding: 40px 0;
-    position: relative; z-index: 1;
-  }
-
   .lg-back-home {
     display: inline-flex; align-items: center; gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     padding: 8px 18px 8px 14px;
     font-family: 'Instrument Sans', sans-serif;
     font-size: 12px; font-weight: 600; letter-spacing: .04em;
@@ -55,6 +49,8 @@ const CSS = `
     -webkit-backdrop-filter: blur(8px);
     transition: color .22s, background .22s, border-color .22s, box-shadow .22s, transform .18s;
     position: relative; z-index: 1;
+    flex-shrink: 0;
+    align-self: flex-start;
   }
   .lg-back-home:hover {
     color: #2ECC8F;
@@ -77,6 +73,14 @@ const CSS = `
     transform: translateX(-2px);
   }
 
+  .lg-content {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 100%;
+    position: relative; z-index: 1;
+    padding: 16px 0;
+  }
+
   .lg-card {
     position: relative; z-index: 1;
     background: rgba(15,21,33,.82);
@@ -92,7 +96,6 @@ const CSS = `
     from { opacity: 0; transform: translateY(24px) scale(.98); }
     to   { opacity: 1; transform: translateY(0)   scale(1);    }
   }
-
   .lg-card::before {
     content: '';
     position: absolute; top: 0; left: 40px; right: 40px; height: 1px;
@@ -261,7 +264,6 @@ const CSS = `
   }
   .lg-success-sub { font-size: 12.5px; color: rgba(238,240,247,.3); }
 
-  /* Checking session state — hides the form flash */
   .lg-checking {
     display: flex; align-items: center; justify-content: center;
     gap: 10px; padding: 60px 0;
@@ -274,6 +276,26 @@ const CSS = `
     animation: lg-rotate .7s linear infinite;
     flex-shrink: 0;
   }
+
+  @media (max-width: 480px) {
+    .lg-root { padding: 20px 16px 32px; }
+    .lg-content { padding: 12px 0; }
+    .lg-card {
+      padding: 32px 24px 28px;
+      border-radius: 18px;
+    }
+    .lg-card::before { left: 24px; right: 24px; }
+    .lg-brand-name { font-size: 20px; }
+    .lg-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+  }
+  @media (max-width: 360px) {
+    .lg-card { padding: 28px 18px 24px; }
+  }
 `;
 
 const ROLE_REDIRECT: Record<string, string> = {
@@ -284,37 +306,54 @@ const ROLE_REDIRECT: Record<string, string> = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail]         = useState("");
-  const [password, setPassword]   = useState("");
-  const [remember, setRemember]   = useState(false);
-  const [showPw, setShowPw]       = useState(false);
-  const [loading, setLoading]     = useState(false);
-  const [success, setSuccess]     = useState(false);
-  const [error, setError]         = useState("");
-  // ── NEW: prevents form flash while checking existing session ──
-  const [checking, setChecking]   = useState(true);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [showPw, setShowPw]     = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [success, setSuccess]   = useState(false);
+  const [error, setError]       = useState("");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Use onAuthStateChange so we wait for Supabase to fully
-    // restore the session from storage before deciding what to show
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+    let cancelled = false;
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        // No session — show the login form immediately
         if (!session?.user) {
-          // No session — show the login form
-          setChecking(false);
+          if (!cancelled) setChecking(false);
           return;
         }
-        // Session exists — fetch role and redirect silently
+
+        // Session exists — verify it's still valid by fetching the user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          // Session is stale/invalid — sign out cleanly and show the form
+          await supabase.auth.signOut();
+          if (!cancelled) setChecking(false);
+          return;
+        }
+
+        // Valid session — fetch role and redirect
         const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+          .from("profiles").select("role").eq("id", user.id).single();
+
         const role = profile?.role?.trim().toLowerCase() ?? "";
-        navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
+        if (!cancelled) {
+          navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
+        }
+      } catch {
+        // Any unexpected error — just show the login form
+        if (!cancelled) setChecking(false);
       }
-    );
-    return () => subscription.unsubscribe();
+    };
+
+    checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogin = async () => {
@@ -335,19 +374,12 @@ export default function Login() {
     }
 
     const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", authData.user.id)
-      .single();
+      .from("profiles").select("role").eq("id", authData.user.id).single();
 
     if (profileError || !profile?.role) {
-      // Profile may not be ready yet — retry once after a short delay
       await new Promise(res => setTimeout(res, 1500));
       const { data: retryProfile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", authData.user.id)
-        .single();
+        .from("profiles").select("role").eq("id", authData.user.id).single();
       if (!retryProfile?.role) {
         setError("Profile not ready yet. Please wait a moment and try again.");
         setLoading(false);
@@ -376,21 +408,18 @@ export default function Login() {
           <div className="lg-glow-b" />
         </div>
 
+        <Link to="/" className="lg-back-home">
+          <span className="bh-arrow">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
+          </span>
+          Back to Home
+        </Link>
+
         <div className="lg-content">
-
-          <Link to="/" className="lg-back-home">
-            <span className="bh-arrow">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-              </svg>
-            </span>
-            Back to Home
-          </Link>
-
           <div className="lg-card">
-
-            {/* While checking session — show spinner, not the form */}
             {checking ? (
               <div className="lg-checking">
                 <span className="lg-check-spin" />

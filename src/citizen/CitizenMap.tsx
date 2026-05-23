@@ -1,3 +1,8 @@
+// src/citizen/CitizenMap.tsx
+// ✅ COMPLETE - Citizen-scoped Map page
+// This wraps the public Map component but ensures it's protected by ProtectedRoute
+// and displays with the citizen navbar instead of public navbar
+
 import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import Navbar from "../components/Navbar";
@@ -59,7 +64,7 @@ function FlyTo({ target }: { target: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     if (target) map.flyTo(target, 17, { duration: 1.4, easeLinearity: 0.25 });
-  }, [target]);
+  }, [target, map]);
   return null;
 }
 
@@ -82,23 +87,19 @@ function createIcon(category: string, isSelected = false) {
   });
 }
 
-export default function FacilityLocator() {
+export default function CitizenMap() {
   const [flyTarget, setFlyTarget]     = useState<[number, number] | null>(null);
   const [search, setSearch]           = useState("");
   const [activeFilter, setFilter]     = useState<string | null>(null);
   const [selectedId, setSelectedId]   = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ── FIX 2: Store marker refs as L.Marker instances (not React refs to <Marker>)
-  // React-Leaflet v4 <Marker> does NOT forward refs. We use a plain object map
-  // populated via the eventHandlers or a custom ref callback instead.
   const markerInstancesRef = useRef<Record<number, L.Marker>>({});
   const cardRefs = useRef<Record<number, HTMLDivElement>>({});
 
   function handleSelect(loc: Location) {
     setSelectedId(loc.id);
     setFlyTarget([loc.lat, loc.lng]);
-    // After fly animation completes, open popup and scroll card into view
     setTimeout(() => {
       markerInstancesRef.current[loc.id]?.openPopup();
       cardRefs.current[loc.id]?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -408,12 +409,10 @@ export default function FacilityLocator() {
         .fl-map-panel {
           flex: 1; position: relative; overflow: hidden;
         }
-        /* ── FIX 3: Ensure Leaflet container fills the panel fully ── */
         .fl-map-panel .leaflet-container {
           width: 100%; height: 100%; background: #0d1b2e;
         }
 
-        /* Leaflet popup styles */
         .leaflet-popup-content-wrapper {
           background: #ffffff !important; border: none !important;
           border-radius: 14px !important;
@@ -705,8 +704,6 @@ export default function FacilityLocator() {
               />
               <FlyTo target={flyTarget} />
 
-              {/* ── FIX 2: Use eventHandlers to grab the native L.Marker instance
-                  instead of ref={} which doesn't work on react-leaflet v4 Marker ── */}
               {filtered.map((loc) => {
                 const cfg = CAT_CONFIG[loc.category];
                 return (

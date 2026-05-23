@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx (FIXED)
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout        from './pages/Layout';
@@ -19,6 +19,14 @@ import Resources          from './pages/Resources';
 import SafetyTips         from './pages/SafetyTips';
 import TermsOfService     from './pages/TermsOfService';
 import TermsOfUse         from './pages/TermsOfUse';
+
+// ── Citizen-scoped pages (same components, citizen navbar) ──────
+// ✅ NEW: These are wrappers that pass the same components but with citizen context
+import CitizenMap         from './citizen/CitizenMap';
+import CitizenDirectory   from './citizen/CitizenDirectory';
+import CitizenSafetyTips  from './citizen/CitizenSafetyTips';
+import CitizenAbout       from './citizen/CitizenAbout';
+import CitizenReport      from './citizen/CitizenReport';
 
 // ── Admin ──────────────────────────────────────────────────────
 import AdminDashboard from './admin/AdminDashboard';
@@ -74,12 +82,23 @@ export default function App() {
         </Route>
 
         {/* ── CITIZEN portal ───────────────────────────────── */}
+        {/* ✅ FIX: Protect all citizen routes, use separate sub-routes */}
         <Route element={<ProtectedRoute allowedRole="citizen" />}>
           <Route element={<Layout />}>
+            {/* Main dashboard */}
             <Route path="/citizen/dashboard"   element={<CitizenDashboard />} />
             <Route path="/citizen/alerts"      element={<CitizenAlertsPage />} />
             <Route path="/citizen/history"     element={<CitizenHistory />} />
             <Route path="/citizen/history/:id" element={<CitizenReportDetail />} />
+            
+            {/* ✅ FIX: Citizen-scoped versions of public pages */}
+            {/* When a citizen clicks "Map" in navbar, they go to /citizen/map
+                 which keeps the citizen navbar and protects the route */}
+            <Route path="/citizen/map"        element={<CitizenMap />} />
+            <Route path="/citizen/directory"  element={<CitizenDirectory />} />
+            <Route path="/citizen/safetytips" element={<CitizenSafetyTips />} />
+            <Route path="/citizen/about"      element={<CitizenAbout />} />
+            <Route path="/citizen/report"     element={<CitizenReport />} />
           </Route>
         </Route>
 

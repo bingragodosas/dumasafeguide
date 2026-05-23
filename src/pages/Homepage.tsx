@@ -99,25 +99,13 @@ export default function Homepage() {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // ── FIX: Track the auth listener separately to prevent redirect after logout ──
   const authListenerRef = useRef<any>(null);
 
-  // ── Redirect already-authenticated users to their dashboard ──
-  // FIXED: Only redirect on SIGNED_IN or INITIAL_SESSION events, NEVER on SIGNED_OUT
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // === CRITICAL FIX: Don't redirect on SIGNED_OUT ===
-      if (event === "SIGNED_OUT") {
-        return;
-      }
-
-      // Ignore token refresh events
+      if (event === "SIGNED_OUT") return;
       if (event === "TOKEN_REFRESHED") return;
-
-      // Only redirect when user is signing in or has an existing session
       if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
-
-      // Make sure there's actually a user
       if (!session?.user) return;
 
       try {
@@ -156,11 +144,11 @@ export default function Homepage() {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) { 
-      setError("Please enter your email and password."); 
-      return; 
+    if (!email || !password) {
+      setError("Please enter your email and password.");
+      return;
     }
-    setLoading(true); 
+    setLoading(true);
     setError(null);
 
     try {
@@ -169,7 +157,7 @@ export default function Homepage() {
 
       if (authError || !authData.user) {
         setError(authError?.message || "Login failed.");
-        setLoading(false); 
+        setLoading(false);
         return;
       }
 
@@ -189,7 +177,7 @@ export default function Homepage() {
 
         if (!retryProfile?.role) {
           setError("Profile not ready yet. Please wait a moment and try again.");
-          setLoading(false); 
+          setLoading(false);
           return;
         }
 
@@ -213,6 +201,11 @@ export default function Homepage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
+        /* ── Reset box-sizing globally for this component ── */
+        .hp-root *, .hp-root *::before, .hp-root *::after {
+          box-sizing: border-box;
+        }
+
         .hp-root {
           min-height: 100vh;
           font-family: 'DM Sans', sans-serif;
@@ -223,6 +216,7 @@ export default function Homepage() {
           max-width: 100vw;
         }
 
+        /* ── Background ── */
         .hp-bg {
           position: fixed; inset: 0; z-index: -1;
           overflow: hidden;
@@ -266,6 +260,7 @@ export default function Homepage() {
           100% { transform: scale(1.08) translate(0px, 0px); }
         }
 
+        /* ── Orbs ── */
         .hp-orb {
           position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
           animation: orbDrift linear infinite;
@@ -295,13 +290,16 @@ export default function Homepage() {
           100% { transform: translate(0, 0) scale(1); }
         }
 
+        /* ── Badge row ── */
         .hp-badge-row {
           display: flex; justify-content: flex-end; align-items: center;
           padding: 16px 0 0 0; position: relative; z-index: 2;
           animation: fadeDown 0.6s ease both;
-          width: 100%; max-width: 100%; box-sizing: border-box;
+          width: 100%;
         }
-        .hp-badge-slot { width: auto; max-width: 340px; flex-shrink: 1; min-width: 0; }
+        .hp-badge-slot {
+          width: auto; max-width: 340px; flex-shrink: 1; min-width: 0;
+        }
         .hp-nav-badge {
           display: inline-flex; align-items: center; justify-content: center; gap: 10px;
           width: 100%; padding: 11px 18px;
@@ -314,7 +312,7 @@ export default function Homepage() {
           transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s;
           -webkit-tap-highlight-color: transparent;
           position: relative; overflow: hidden;
-          box-sizing: border-box; white-space: nowrap;
+          white-space: nowrap;
         }
         .hp-nav-badge::before {
           content: ''; position: absolute; top: 0; left: -75%;
@@ -374,23 +372,20 @@ export default function Homepage() {
           50%       { text-shadow: 0 0 14px rgba(232,55,42,0.9), 0 0 28px rgba(232,55,42,0.4); opacity: 0.9; }
         }
 
-        @media (max-width: 860px) { .hp-badge-slot { width: 100%; max-width: none; } }
-
+        /* ── Inner container ── */
         .hp-inner {
           position: relative; z-index: 1;
           max-width: 1100px; margin: 0 auto;
-          padding: 0 24px 0; width: 100%; box-sizing: border-box;
+          padding: 0 24px 0; width: 100%;
         }
 
+        /* ── Hero ── */
         .hp-hero {
           margin-top: 40px; margin-bottom: 72px;
-          display: grid; grid-template-columns: 1fr 400px;
+          display: grid;
+          grid-template-columns: 1fr minmax(0, 400px);
           gap: 48px; align-items: center;
           animation: fadeUp 0.7s 0.1s ease both;
-        }
-        @media (max-width: 860px) {
-          .hp-hero { grid-template-columns: 1fr; }
-          .hp-auth-panel { order: -1; }
         }
 
         .hp-hero-eyebrow {
@@ -406,7 +401,7 @@ export default function Homepage() {
 
         .hp-hero h1 {
           font-family: 'Syne', sans-serif;
-          font-size: clamp(42px, 6vw, 78px);
+          font-size: clamp(38px, 6vw, 78px);
           font-weight: 800;
           line-height: 0.95;
           letter-spacing: -0.03em;
@@ -454,8 +449,9 @@ export default function Homepage() {
         .hp-hero-cta-arrow { transition: transform 0.2s ease; }
         .hp-hero-cta:hover .hp-hero-cta-arrow { transform: translateX(4px); }
 
+        /* ── Stats ── */
         .hp-stats {
-          display: flex; align-items: center; gap: 0;
+          display: flex; align-items: stretch; gap: 0;
           margin-top: 48px;
           border: 1px solid rgba(0,200,224,0.10);
           border-radius: 12px;
@@ -464,8 +460,8 @@ export default function Homepage() {
           overflow: hidden;
         }
         .hp-stat {
-          flex: 1; padding: 20px 24px; text-align: center;
-          position: relative;
+          flex: 1; padding: 20px 16px; text-align: center;
+          position: relative; min-width: 0;
         }
         .hp-stat + .hp-stat::before {
           content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
@@ -473,18 +469,20 @@ export default function Homepage() {
         }
         .hp-stat-value {
           font-family: 'Syne', sans-serif;
-          font-size: 32px; font-weight: 800;
+          font-size: 28px; font-weight: 800;
           color: #F8FAFC; line-height: 1;
           margin-bottom: 6px;
         }
         .hp-stat-suffix {
-          font-size: 18px; color: #A8D8FF; margin-left: 2px;
+          font-size: 16px; color: #A8D8FF; margin-left: 2px;
         }
         .hp-stat-label {
-          font-size: 11px; font-weight: 400; letter-spacing: 0.08em;
+          font-size: 10px; font-weight: 400; letter-spacing: 0.06em;
           text-transform: uppercase; color: rgba(168,216,255,0.45);
+          line-height: 1.3;
         }
 
+        /* ── Auth panel ── */
         .hp-auth-panel {
           background: rgba(13,27,46,0.78);
           border: 1px solid rgba(0,200,224,0.14);
@@ -492,6 +490,7 @@ export default function Homepage() {
           backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
           position: relative; overflow: hidden;
           box-shadow: 0 0 40px rgba(7,16,29,0.5), inset 0 0 40px rgba(0,200,224,0.02);
+          width: 100%;
         }
         .hp-auth-panel::before {
           content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -558,7 +557,7 @@ export default function Homepage() {
           font-family: 'DM Sans', sans-serif; font-size: 14px; color: #c8e4f4;
           outline: none; caret-color: #00c8e0;
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s;
-          width: 100%; box-sizing: border-box;
+          width: 100%;
         }
         .hp-auth-input::placeholder { color: rgba(160,200,224,0.18); }
         .hp-auth-input:focus {
@@ -569,7 +568,7 @@ export default function Homepage() {
 
         .hp-auth-row {
           display: flex; align-items: center; justify-content: space-between;
-          margin-bottom: 20px;
+          margin-bottom: 20px; gap: 8px; flex-wrap: wrap;
         }
         .hp-auth-remember {
           display: flex; align-items: center; gap: 7px;
@@ -643,7 +642,6 @@ export default function Homepage() {
           letter-spacing: 0.08em; text-transform: uppercase;
           text-align: center; text-decoration: none;
           transition: background 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-          box-sizing: border-box;
         }
         .hp-auth-create:hover {
           background: rgba(168,216,255,0.10);
@@ -652,6 +650,7 @@ export default function Homepage() {
           box-shadow: 0 0 20px rgba(168,216,255,0.12);
         }
 
+        /* ── Divider ── */
         .hp-divider {
           display: flex; align-items: center; gap: 16px;
           margin-bottom: 40px;
@@ -667,18 +666,20 @@ export default function Homepage() {
           background: linear-gradient(90deg, rgba(168,216,255,0.18), transparent);
         }
 
+        /* ── Cards grid ── */
         .hp-grid {
-          display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
         }
-        @media (max-width: 600px) { .hp-grid { grid-template-columns: 1fr; } }
 
         .hp-card {
           position: relative;
           background: rgba(13,27,46,0.60);
           border: 1px solid rgba(0,200,224,0.09);
-          border-radius: 12px; padding: 28px;
+          border-radius: 12px; padding: 24px 20px;
           text-decoration: none; color: inherit;
-          display: flex; flex-direction: column; gap: 12px;
+          display: flex; flex-direction: column; gap: 10px;
           overflow: hidden;
           transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
           animation: fadeUp 0.6s ease both;
@@ -714,7 +715,7 @@ export default function Homepage() {
           display: flex; align-items: center; justify-content: space-between;
         }
         .hp-card-icon {
-          width: 52px; height: 52px; border-radius: 12px;
+          width: 48px; height: 48px; border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
           color: var(--accent-color);
           background: var(--accent-alpha); border: 1px solid var(--accent-color);
@@ -727,18 +728,18 @@ export default function Homepage() {
         }
         .hp-card-tag {
           font-family: 'DM Sans', sans-serif; font-size: 9px; font-weight: 700;
-          letter-spacing: 0.15em; color: var(--accent-color);
+          letter-spacing: 0.12em; color: var(--accent-color);
           border: 1px solid var(--accent-color);
-          border-radius: 3px; padding: 3px 7px; opacity: 0.7;
+          border-radius: 3px; padding: 2px 6px; opacity: 0.7;
           position: relative; z-index: 1;
         }
         .hp-card-title {
-          font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700;
+          font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
           color: #F8FAFC; position: relative; z-index: 1;
         }
         .hp-card-desc {
-          font-size: 13px; font-weight: 300;
-          color: rgba(168,216,255,0.55); line-height: 1.55;
+          font-size: 12px; font-weight: 300;
+          color: rgba(168,216,255,0.55); line-height: 1.5;
           position: relative; z-index: 1; flex: 1;
         }
         .hp-card-action {
@@ -749,6 +750,7 @@ export default function Homepage() {
         }
         .hp-card:hover .hp-card-action { gap: 10px; }
 
+        /* ── Ticker ── */
         .hp-ticker {
           margin-top: 16px; margin-bottom: 0;
           border: 1px solid rgba(168,216,255,0.10);
@@ -763,9 +765,9 @@ export default function Homepage() {
           flex-shrink: 0;
           font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 800;
           letter-spacing: 0.18em; text-transform: uppercase;
-          color: #e8372a; padding: 0 20px;
+          color: #e8372a; padding: 0 16px;
           border-right: 1px solid rgba(232,55,42,0.25);
-          margin-right: 20px;
+          margin-right: 16px;
           background: rgba(7,16,29,0.60);
           position: relative; z-index: 2;
         }
@@ -789,12 +791,14 @@ export default function Homepage() {
           background: rgba(168,216,255,0.3); flex-shrink: 0;
         }
 
+        /* ── Footer bridge ── */
         .hp-footer-bridge {
           height: 48px;
           background: linear-gradient(to bottom, rgba(4,16,28,0) 0%, rgba(4,16,28,1) 100%);
           pointer-events: none; position: relative; z-index: 1;
         }
 
+        /* ── Keyframes ── */
         @keyframes fadeDown {
           from { opacity: 0; transform: translateY(-16px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -802,6 +806,84 @@ export default function Homepage() {
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(24px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ════════════════════════════════════════
+           RESPONSIVE BREAKPOINTS
+           ════════════════════════════════════════ */
+
+        /* ── Tablet: stack hero layout ── */
+        @media (max-width: 860px) {
+          .hp-hero {
+            grid-template-columns: 1fr;
+            margin-top: 24px;
+            margin-bottom: 48px;
+            gap: 32px;
+          }
+          .hp-auth-panel { order: -1; }
+          .hp-badge-slot { width: 100%; max-width: none; }
+          .hp-badge-row { justify-content: flex-start; }
+          .hp-nav-badge { justify-content: center; }
+        }
+
+        /* ── Mobile: OnePlus Nord (~412px) and similar ── */
+        @media (max-width: 600px) {
+          .hp-inner { padding: 0 16px; }
+
+          /* Badge */
+          .hp-badge-row { padding-top: 10px; }
+          .hp-nav-badge { padding: 10px 16px; }
+          .hp-badge-text { font-size: 11px; }
+
+          /* Ticker */
+          .hp-ticker { border-radius: 8px; padding: 9px 0; }
+          .hp-ticker-label { padding: 0 12px; margin-right: 12px; font-size: 8px; }
+          .hp-ticker-item { font-size: 11px; }
+
+          /* Hero text */
+          .hp-hero { margin-top: 16px; margin-bottom: 36px; gap: 24px; }
+          .hp-hero h1 { margin-bottom: 14px; }
+          .hp-hero-sub { font-size: 14px; margin-bottom: 22px; }
+          .hp-hero-eyebrow { font-size: 10px; margin-bottom: 14px; }
+          .hp-hero-cta { padding: 12px 22px; font-size: 12px; }
+
+          /* Auth panel */
+          .hp-auth-panel { padding: 20px 16px 18px; border-radius: 12px; }
+          .hp-auth-title { font-size: 19px; }
+          .hp-auth-subtitle { font-size: 12px; margin-bottom: 18px; }
+          .hp-auth-input { padding: 10px 12px; font-size: 13px; }
+          .hp-auth-btn { padding: 12px; font-size: 12px; }
+          .hp-auth-create { padding: 12px; font-size: 12px; }
+
+          /* Stats bar */
+          .hp-stats { margin-top: 28px; }
+          .hp-stat { padding: 14px 8px; }
+          .hp-stat-value { font-size: 22px; }
+          .hp-stat-suffix { font-size: 13px; }
+          .hp-stat-label { font-size: 9px; letter-spacing: 0.04em; }
+
+          /* Divider */
+          .hp-divider { margin-bottom: 24px; }
+
+          /* Cards — keep 2-col on Nord */
+          .hp-grid { gap: 10px; }
+          .hp-card { padding: 16px 14px; gap: 8px; border-radius: 10px; }
+          .hp-card-icon { width: 40px; height: 40px; border-radius: 10px; }
+          .hp-card-icon svg { width: 20px !important; height: 20px !important; }
+          .hp-card-title { font-size: 15px; }
+          .hp-card-desc { font-size: 11px; }
+          .hp-card-tag { font-size: 8px; padding: 2px 5px; }
+          .hp-card-action { font-size: 11px; margin-top: 2px; }
+        }
+
+        /* ── Extra small: 360px and below → 1-col cards ── */
+        @media (max-width: 360px) {
+          .hp-inner { padding: 0 12px; }
+          .hp-grid { grid-template-columns: 1fr; }
+          .hp-card { padding: 18px 16px; }
+          .hp-card-title { font-size: 17px; }
+          .hp-card-desc { font-size: 12px; }
+          .hp-stat-value { font-size: 20px; }
         }
       `}</style>
 

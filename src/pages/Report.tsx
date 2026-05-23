@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import reportBg from "../assets/report.bg.png";
 import { supabase } from "../js/supabase";
@@ -21,9 +22,10 @@ const EMERGENCY_HOTLINES = [
 
 const STEPS = ["Incident Type", "Reporter Info", "Location", "Description", "Evidence", "Submit"];
 
-const GEO_OPTIONS: PositionOptions = { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 };
+
 
 export default function Report() {
+  const navigate = useNavigate();
   const [location, setLocation]             = useState("");
   const [address, setAddress]               = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
@@ -37,56 +39,71 @@ export default function Report() {
   const [currentStep, setCurrentStep]       = useState(0);
   const [submitting, setSubmitting]         = useState(false);
   const [submitError, setSubmitError]       = useState<string | null>(null);
-  const [reporterName, setReporterName]       = useState("");
+  const [reporterName, setReporterName]     = useState("");
   const [reporterContact, setReporterContact] = useState("");
-  const [description, setDescription]         = useState("");
-  const [manualAddress, setManualAddress]     = useState("");
+  const [description, setDescription]       = useState("");
 
   const fileRef = useRef<HTMLInputElement>(null);
   const activeType = INCIDENT_TYPES.find((t) => t.value === selectedType);
 
   async function reverseGeocode(lat: string, lng: string) {
     try {
-      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&addressdetails=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
       const data = await res.json();
-      const parts: string[] = [];
-      if (data.locality) parts.push(data.locality);
-      if (data.city && data.city !== data.locality) parts.push(data.city);
-      if (data.principalSubdivision) parts.push(data.principalSubdivision);
-      if (data.countryName) parts.push(data.countryName);
-      if (parts.length > 0) { setAddress(parts.join(", ")); return; }
-    } catch { /* fall through */ }
-    try {
-      const res2 = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`, { headers: { "Accept-Language": "en" } });
-      const data2 = await res2.json();
-      if (data2?.address) {
-        const a = data2.address;
-        const parts2: string[] = [];
-        if (a.village || a.suburb || a.hamlet) parts2.push(a.village ?? a.suburb ?? a.hamlet);
-        if (a.municipality || a.city || a.town) parts2.push(a.municipality ?? a.city ?? a.town);
-        if (a.province || a.state) parts2.push(a.province ?? a.state);
-        if (a.country) parts2.push(a.country);
-        if (parts2.length > 0) { setAddress(parts2.join(", ")); return; }
-        if (data2.display_name) setAddress(data2.display_name);
+      if (data?.address) {
+        const a = data.address;
+        const parts: string[] = [];
+        if (a.road) parts.push(a.road);
+        if (a.neighbourhood) parts.push(a.neighbourhood);
+        if (a.suburb) parts.push(a.suburb);
+        if (a.village) parts.push(a.village);
+        if (a.barangay) parts.push(a.barangay);
+        if (a.city || a.town || a.municipality) parts.push(a.city ?? a.town ?? a.municipality);
+        if (a.state || a.province) parts.push(a.state ?? a.province);
+        if (a.country) parts.push(a.country);
+        const clean = [...new Set(parts)];
+        if (clean.length > 0) { setAddress(clean.join(", ")); return; }
       }
-    } catch { /* both failed */ }
+      if (data?.display_name) { setAddress(data.display_name); return; }
+    } catch (err) {
+      console.error("Reverse geocode failed:", err);
+    }
+    setAddress(`Lat ${lat}, Lng ${lng}`);
   }
 
-  function acquireGPS(onSuccess: (lat: string, lng: string, acc: number) => void, onError: () => void) {
+  function acquireGPS(
+    onSuccess: (lat: string, lng: string, acc: number) => void,
+    onError: () => void
+  ) {
+    let bestPosition: GeolocationPosition | null = null;
     let watchId: number | null = null;
-    let settled = false;
-    const stop = () => { if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; } };
-    const timer = setTimeout(() => { if (!settled) { settled = true; stop(); onError(); } }, 30000);
+    const stop = () => {
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+    };
+    const finish = () => {
+      if (!bestPosition) { onError(); return; }
+      const lat = bestPosition.coords.latitude.toFixed(6);
+      const lng = bestPosition.coords.longitude.toFixed(6);
+      const acc = bestPosition.coords.accuracy;
+      onSuccess(lat, lng, acc);
+    };
+    const timer = setTimeout(() => { stop(); finish(); }, 12000);
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const acc = pos.coords.accuracy;
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
-        if (!settled && acc <= 50) { settled = true; clearTimeout(timer); stop(); onSuccess(lat, lng, acc); }
-        else if (!settled) { onSuccess(lat, lng, acc); }
+        const accuracy = pos.coords.accuracy;
+        if (!bestPosition || accuracy < bestPosition.coords.accuracy) {
+          bestPosition = pos;
+        }
+        if (accuracy <= 15) { clearTimeout(timer); stop(); finish(); }
       },
-      () => { if (!settled) { settled = true; clearTimeout(timer); stop(); onError(); } },
-      GEO_OPTIONS
+      (err) => {
+        console.error("GPS error:", err);
+        clearTimeout(timer); stop(); onError();
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }
 
@@ -142,10 +159,16 @@ export default function Report() {
       evidenceUrl = url;
     }
     const payload = {
-      type: selectedType, description: description.trim() || null, location: location || null,
-      address: manualAddress.trim() || address || null, reporter_name: reporterName.trim() || null,
-      reporter_contact: reporterContact.trim() || null, status: "pending", user_id: user?.id ?? null,
-      responder_id: null, evidence_url: evidenceUrl,
+      type: selectedType,
+      description: description.trim() || null,
+      location: location || null,
+      address: address || null,
+      reporter_name: reporterName.trim() || null,
+      reporter_contact: reporterContact.trim() || null,
+      status: "pending",
+      user_id: user?.id ?? null,
+      responder_id: null,
+      evidence_url: evidenceUrl,
     };
     const { error } = await supabase.from("reports").insert(payload);
     if (error) { setSubmitError("Failed to submit report. Please try again."); setSubmitting(false); return; }
@@ -157,11 +180,20 @@ export default function Report() {
     if (agreed && selectedType) setCurrentStep(5);
     else if (fileName) setCurrentStep(4);
     else if (description.trim()) setCurrentStep(3);
-    else if (locationStatus === "ok") setCurrentStep(2);
-    else if (locationStatus !== "idle") setCurrentStep(2);
+    else if (locationStatus === "ok" || locationStatus !== "idle") setCurrentStep(2);
     else if (selectedType) setCurrentStep(1);
     else setCurrentStep(0);
   }, [selectedType, locationStatus, fileName, agreed, description]);
+
+  function gpsInputValue() {
+    if (locationStatus === "loading") return "Acquiring location — please wait…";
+    if (locationStatus === "error")   return "Location unavailable — GPS access denied or timed out";
+    if (locationStatus === "ok") {
+      if (address) return address;
+      if (location) return `Resolving address… (${location})`;
+    }
+    return "";
+  }
 
   if (submitted) {
     return (
@@ -179,13 +211,20 @@ export default function Report() {
               <div className="rp-success-icon">✓</div>
               <h2 className="rp-success-title">Report Submitted</h2>
               <p className="rp-success-sub">Your incident report has been received and is now visible to responders. Authorities have been notified and will respond shortly. Keep your phone nearby for follow-up.</p>
-              <button className="rp-btn-ghost" onClick={() => {
-                setSubmitted(false); setSelectedType(null); setDescription("");
-                setReporterName(""); setReporterContact(""); setFileName(null);
-                setFileObject(null); setAgreed(false); setUploadProgress("idle"); setManualAddress("");
-              }}>
-                Submit another report
-              </button>
+              <div className="rp-success-actions">
+                <div className="rp-success-card">
+                  <div className="rp-success-card-icon">📝</div>
+                  <div className="rp-success-card-title">Submit Another Report</div>
+                  <p className="rp-success-card-text">Report another incident to help keep your community safe.</p>
+                  <button className="rp-btn-primary rp-btn-primary--ghost" onClick={() => {
+                    setSubmitted(false); setSelectedType(null); setDescription("");
+                    setReporterName(""); setReporterContact(""); setFileName(null);
+                    setFileObject(null); setAgreed(false); setUploadProgress("idle");
+                  }}>
+                    Submit Another Report →
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -219,6 +258,16 @@ export default function Report() {
               so the right team can act fast.
             </p>
           </section>
+
+          {/* ── Tracking Benefit Banner ── */}
+          <div className="rp-tracking-banner">
+            <div className="rp-banner-icon">📍</div>
+            <div className="rp-banner-content">
+              <div className="rp-banner-title">Track Your Report in Real-Time</div>
+              <p className="rp-banner-text">Create an account to monitor the status of your incident report and receive updates as authorities respond. <strong>Don't have an account? Sign up after submission!</strong></p>
+            </div>
+            <button onClick={() => navigate("/signup")} className="rp-banner-cta" style={{ cursor: "pointer" }}>Create Account →</button>
+          </div>
 
           {/* ── Step progress ── */}
           <div className="rp-steps">
@@ -277,12 +326,19 @@ export default function Report() {
                 <div className="rp-card">
                   <div className="rp-card-label"><span className="rp-step-badge">03</span>Your Location</div>
                   <div className="rp-field">
-                    <label className="rp-label">GPS Coordinates (auto-detected)</label>
-                    <div className="rp-location-wrap">
-                      <span className="rp-location-dot" data-status={locationStatus} />
-                      <input className="rp-input rp-input--location" type="text" readOnly
-                        value={locationStatus === "loading" ? "Acquiring GPS — please wait…" : locationStatus === "error" ? "GPS unavailable — fill address below" : location}
-                        placeholder="Tap Refresh GPS →" />
+                    <label className="rp-label">Detected Location</label>
+
+                    <div className="rp-location-row">
+                      <div className="rp-location-input-wrap">
+                        <span className="rp-location-dot" data-status={locationStatus} />
+                        <input
+                          className="rp-input rp-input--location"
+                          type="text"
+                          readOnly
+                          value={gpsInputValue()}
+                          placeholder="Waiting for GPS…"
+                        />
+                      </div>
                       <button type="button" className="rp-gps-btn" onClick={() => {
                         setLocationStatus("loading"); setAddress(null); setGpsAccuracy(null);
                         acquireGPS(async (lat, lng, acc) => {
@@ -291,35 +347,52 @@ export default function Report() {
                         }, () => setLocationStatus("error"));
                       }}>📍 Refresh GPS</button>
                     </div>
-                    {locationStatus === "loading" && (
-                      <div className="rp-gps-acquiring"><span className="rp-gps-pulse" /><span>Searching for GPS signal… keep your device still and outdoors.</span></div>
-                    )}
-                    {locationStatus === "error" && <p className="rp-hint rp-hint--warn">⚠️ GPS access was denied or timed out. Allow location access or type your address below.</p>}
+
+                    {/* Raw coords + Maps link */}
                     {locationStatus === "ok" && location && (
-                      <div className="rp-gps-result">
-                        <div className="rp-gps-badges">
-                          {gpsAccuracy !== null && (
-                            <span className={`rp-acc-badge ${gpsAccuracy <= 20 ? "acc-great" : gpsAccuracy <= 100 ? "acc-ok" : "acc-poor"}`}>
-                              {gpsAccuracy <= 20 ? "✓ High accuracy" : gpsAccuracy <= 100 ? "~ Medium accuracy" : "⚠ Low accuracy"} (±{Math.round(gpsAccuracy)}m)
-                            </span>
-                          )}
-                          {gpsAccuracy !== null && gpsAccuracy > 100 && <span className="rp-acc-tip">Move outdoors for better accuracy</span>}
-                        </div>
-                        <a href={`https://www.google.com/maps?q=${location}`} target="_blank" rel="noopener noreferrer" className="rp-maps-verify">🗺 Verify on Google Maps</a>
-                        <p className="rp-hint rp-hint--warn">⚠️ If the pin is wrong, tap <strong>Refresh GPS</strong> or type your address below.</p>
+                      <div className="rp-coords-badge">
+                        <span className="rp-coords-icon">🌐</span>
+                        <span className="rp-coords-text">{location}</span>
+                        {address && (
+                          <a
+                            href={`https://www.google.com/maps?q=${location}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rp-maps-verify"
+                          >
+                            Verify on Maps →
+                          </a>
+                        )}
                       </div>
                     )}
-                    {locationStatus === "ok" && address && (
-                      <div className="rp-detected-address">
-                        <span className="rp-detected-label">📡 Auto-detected address</span>
-                        <span className="rp-detected-value">{address}</span>
+
+                    {locationStatus === "loading" && (
+                      <div className="rp-gps-acquiring">
+                        <span className="rp-gps-pulse" />
+                        <span>Searching for GPS signal… keep your device still and outdoors.</span>
                       </div>
                     )}
-                  </div>
-                  <div className="rp-field">
-                    <label className="rp-label">Exact Address / Location Description <span className="rp-loc-required">★ Please fill this in</span></label>
-                    <input className="rp-input rp-input--address" type="text" placeholder="e.g. Purok 3, Brgy. Boloboloc, Sibulan, Negros Oriental" value={manualAddress} onChange={e => setManualAddress(e.target.value)} />
-                    <p className="rp-hint rp-hint--info">📌 GPS coordinates are saved automatically. Add your barangay, street, or landmark so responders can find you faster. <strong>Always confirm your actual location here.</strong></p>
+
+                    {locationStatus === "error" && (
+                      <p className="rp-hint rp-hint--warn">⚠️ Location access was denied or timed out. Please allow location access and tap <strong>Refresh GPS</strong>.</p>
+                    )}
+
+                    {locationStatus === "ok" && (
+                      <div className="rp-gps-badges">
+                        {gpsAccuracy !== null && (
+                          <span className={`rp-acc-badge ${gpsAccuracy <= 20 ? "acc-great" : gpsAccuracy <= 100 ? "acc-ok" : "acc-poor"}`}>
+                            {gpsAccuracy <= 20 ? "✓ High accuracy" : gpsAccuracy <= 100 ? "~ Medium accuracy" : "⚠ Low accuracy"} (±{Math.round(gpsAccuracy)}m)
+                          </span>
+                        )}
+                        {gpsAccuracy !== null && gpsAccuracy > 100 && (
+                          <span className="rp-acc-tip">Move outdoors for better accuracy</span>
+                        )}
+                      </div>
+                    )}
+
+                    {locationStatus === "ok" && (
+                      <p className="rp-hint rp-hint--warn">⚠️ If the location looks wrong, tap <strong>Refresh GPS</strong> to try again.</p>
+                    )}
                   </div>
                 </div>
 
@@ -359,10 +432,15 @@ export default function Report() {
 
                 {/* Disclaimer */}
                 <div className="rp-disclaimer">
+                  <div className="rp-disclaimer-header">
+                    <span className="rp-disclaimer-icon">⚖️</span>
+                    <span className="rp-disclaimer-title">Legal Acknowledgment</span>
+                  </div>
+                  <p className="rp-disclaimer-summary">By submitting this report, you confirm that the information provided is true and accurate to the best of your knowledge.</p>
                   <label className="rp-check-label">
                     <input type="checkbox" className="rp-checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required />
                     <span className="rp-check-box" aria-hidden="true">{agreed ? "✓" : ""}</span>
-                    <span className="rp-check-text">I understand that submitting false or malicious reports is punishable under the <strong>Cybercrime Prevention Act of 2012 (RA 10175)</strong> and other applicable Philippine laws.</span>
+                    <span className="rp-check-text">I understand that submitting <strong>false, misleading, or malicious reports</strong> is punishable under the <strong>Cybercrime Prevention Act of 2012 (RA 10175)</strong>, the <strong>Penal Code</strong>, and other applicable Philippine laws. Penalties may include fines and imprisonment. All reports are logged and may be investigated by authorities.</span>
                   </label>
                 </div>
 
@@ -378,8 +456,17 @@ export default function Report() {
                 )}
 
                 <button type="submit" className="rp-submit" disabled={!agreed || !selectedType || submitting}>
-                  <span>{submitting ? "Submitting…" : "Submit Incident Report"}</span>
-                  {!submitting && <span className="rp-submit-arrow">→</span>}
+                  {submitting ? (
+                    <>
+                      <span className="rp-loader"></span>
+                      <span>Submitting…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Submit Incident Report</span>
+                      <span className="rp-submit-arrow">→</span>
+                    </>
+                  )}
                 </button>
 
               </form>
@@ -410,13 +497,10 @@ export default function Report() {
                 <div className="rp-sidebar-title">🛡️ Your Safety Matters</div>
                 <p className="rp-sidebar-text">Your identity and contact information are kept strictly confidential. You may submit anonymously if preferred.</p>
               </div>
-              <div className="rp-sidebar-card rp-sidebar-card--dark">
-                <div className="rp-sidebar-title">🕵️ Silent Report</div>
-                <p className="rp-sidebar-text">Need to tip-off authorities discreetly? Use our anonymous hotline or scan below.</p>
-                <div className="rp-qr-placeholder">
-                  <div className="rp-qr-inner">QR</div>
-                  <span>Scan to report anonymously</span>
-                </div>
+              <div className="rp-sidebar-card rp-sidebar-card--track">
+                <div className="rp-sidebar-title">📍 Track Your Report</div>
+                <p className="rp-sidebar-text">Create an account to track the status of your incident reports in real-time. You'll receive updates as authorities respond and investigate your report.</p>
+                <button onClick={() => navigate("/signup")} className="rp-track-link" style={{ cursor: "pointer", marginLeft: 0 }}>Create Account or Login →</button>
               </div>
             </div>
 
@@ -429,7 +513,6 @@ export default function Report() {
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
 const styles = `
-  /* ── Fonts: Syne 800 (headings) + DM Sans 300/400/500 (body) — matches About page ── */
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -461,23 +544,23 @@ const styles = `
     overflow-x: hidden;
   }
 
-  /* ── Background ── */
- .rp-bg-img {
-  width: 100%; height: 100%;
-  object-fit: cover; object-position: center; display: block;
-  transform-origin: center center;
-  animation: bgDrift 32s ease-in-out infinite;
-  will-change: transform;
-}
-.rp-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .rp-bg-img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center; display: block;
+    transform-origin: center center;
+    animation: bgDrift 32s ease-in-out infinite;
+    will-change: transform;
+  }
+  .rp-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
 
-@keyframes bgDrift {
-  0%   { transform: scale(1.08) translate(0px,   0px);   }
-  25%  { transform: scale(1.12) translate(-16px, -10px); }
-  50%  { transform: scale(1.10) translate(-6px,  -18px); }
-  75%  { transform: scale(1.13) translate(14px,  -6px);  }
-  100% { transform: scale(1.08) translate(0px,   0px);   }
-}
+  @keyframes bgDrift {
+    0%   { transform: scale(1.08) translate(0px,   0px);   }
+    25%  { transform: scale(1.12) translate(-16px, -10px); }
+    50%  { transform: scale(1.10) translate(-6px,  -18px); }
+    75%  { transform: scale(1.13) translate(14px,  -6px);  }
+    100% { transform: scale(1.08) translate(0px,   0px);   }
+  }
+
   .rp-bg-overlay {
     position: absolute; inset: 0;
     background: linear-gradient(
@@ -501,7 +584,6 @@ const styles = `
     background-size: 200px; opacity: 0.45; pointer-events: none;
   }
 
-  /* ── Body ── */
   .rp-body {
     position: relative; z-index: 1;
     max-width: 1140px; margin: 0 auto;
@@ -509,7 +591,6 @@ const styles = `
   }
   .rp-body--center { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
 
-  /* ── Hero ── */
   .rp-hero {
     padding: 40px 0 40px;
     animation: rpFadeUp 0.55s ease both;
@@ -523,7 +604,6 @@ const styles = `
   }
   .rp-eyebrow::after { content: ''; display: block; width: 40px; height: 1px; background: var(--red); opacity: 0.5; }
 
-  /* FIX 1: Title — use nowrap on the inline span so "Incident" stays with "an" as long as possible */
   .rp-title {
     font-family: 'Syne', sans-serif;
     font-size: clamp(34px, 5.5vw, 72px);
@@ -542,10 +622,40 @@ const styles = `
     font-family: 'DM Sans', sans-serif;
     font-size: 16px; font-weight: 300;
     color: rgba(160,200,224,0.60); max-width: 480px; line-height: 1.68;
+    margin-bottom: 28px;
   }
 
-  /* ── Step progress ── */
-  /* FIX 2: Horizontally scrollable with fade-right hint, no wrapping */
+  .rp-tracking-banner {
+    display: flex; align-items: center; gap: 16px;
+    background: linear-gradient(135deg, rgba(46,204,143,0.08), rgba(0,200,224,0.05));
+    border: 1px solid rgba(46,204,143,0.20);
+    border-radius: 12px; padding: 16px 18px;
+    margin-bottom: 28px; animation: rpFadeUp 0.55s ease both;
+  }
+  .rp-banner-icon { font-size: 24px; flex-shrink: 0; }
+  .rp-banner-content { flex: 1; }
+  .rp-banner-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 800; letter-spacing: -0.02em;
+    color: var(--green); margin-bottom: 4px;
+  }
+  .rp-banner-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; font-weight: 300; color: rgba(160,200,224,0.55);
+    line-height: 1.5; margin: 0;
+  }
+  .rp-banner-text strong { font-weight: 500; color: rgba(46,204,143,0.80); }
+  .rp-banner-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+    color: var(--green); background: rgba(46,204,143,0.12);
+    border: 1px solid rgba(46,204,143,0.25); border-radius: 8px;
+    padding: 8px 14px; text-decoration: none;
+    transition: background 0.18s, border-color 0.18s, transform 0.18s;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .rp-banner-cta:hover { background: rgba(46,204,143,0.20); border-color: rgba(46,204,143,0.40); transform: translateY(-1px); }
+
   .rp-steps {
     display: flex; align-items: center; gap: 0;
     margin-bottom: 28px;
@@ -557,7 +667,6 @@ const styles = `
     scrollbar-width: none;
     flex-wrap: nowrap;
     animation: rpFadeUp 0.55s ease 0.05s both;
-    /* Right fade hint — users see content fading right = more to scroll */
     -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 48px), transparent 100%);
     mask-image: linear-gradient(to right, black 0%, black calc(100% - 48px), transparent 100%);
   }
@@ -583,8 +692,6 @@ const styles = `
   .rp-step-item--active .rp-step-label { color: rgba(232,55,42,0.80); }
   .rp-step-line { width: 20px; height: 1px; background: var(--border); margin: 0 6px; flex-shrink: 0; }
 
-  /* ── Grid ── */
-  /* FIX 3: form (rp-left) always comes first, sidebar (rp-right) always below on mobile */
   .rp-layout {
     display: grid;
     grid-template-columns: 1fr 300px;
@@ -594,13 +701,13 @@ const styles = `
   .rp-left  { order: 0; }
   .rp-right { order: 1; }
 
-  /* ── Form cards ── */
-  .rp-form { display: flex; flex-direction: column; gap: 14px; }
+  .rp-form { display: flex; flex-direction: column; gap: 18px; }
   .rp-card {
     background: var(--surface); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     border: 1px solid var(--border); border-radius: var(--radius);
     padding: 22px 20px; display: flex; flex-direction: column; gap: 16px;
     animation: rpFadeUp 0.55s ease both;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   }
   .rp-card:nth-child(1) { animation-delay: 0.08s; }
   .rp-card:nth-child(2) { animation-delay: 0.14s; }
@@ -622,7 +729,6 @@ const styles = `
   }
   .rp-optional { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 300; color: var(--text3); margin-left: 4px; }
 
-  /* Type grid */
   .rp-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .rp-type-btn {
     background: rgba(13,27,46,0.60); border: 1px solid var(--border);
@@ -632,7 +738,7 @@ const styles = `
     font-family: 'DM Sans', sans-serif;
   }
   .rp-type-btn:hover { transform: translateY(-2px); border-color: var(--t-accent); background: var(--t-alpha); }
-  .rp-type-btn--active { border-color: var(--t-accent) !important; background: var(--t-alpha) !important; transform: translateY(-2px); }
+  .rp-type-btn--active { border-color: var(--t-accent) !important; background: var(--t-alpha) !important; transform: translateY(-2px); box-shadow: 0 0 20px rgba(var(--t-accent), 0.25); }
   .rp-type-icon { font-size: 20px; }
   .rp-type-label { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; color: var(--text2); text-align: center; line-height: 1.3; }
   .rp-type-confirm {
@@ -643,7 +749,6 @@ const styles = `
     animation: rpFadeUp 0.3s ease both;
   }
 
-  /* Fields */
   .rp-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .rp-field { display: flex; flex-direction: column; gap: 8px; }
   .rp-label {
@@ -660,7 +765,7 @@ const styles = `
     caret-color: var(--cyan);
   }
   .rp-input::placeholder { color: var(--text3); }
-  .rp-input:focus { border-color: rgba(0,200,224,0.38); background: rgba(0,200,224,0.02); box-shadow: 0 0 0 3px rgba(0,200,224,0.06); }
+  .rp-input:focus { border-color: rgba(0,200,224,0.50); background: rgba(0,200,224,0.04); box-shadow: 0 0 12px rgba(0,200,224,0.15); }
   .rp-textarea {
     background: var(--input-bg); border: 1px solid var(--border);
     border-radius: 8px; padding: 11px 13px;
@@ -669,20 +774,37 @@ const styles = `
     transition: border-color 0.18s, background 0.18s; caret-color: var(--cyan);
   }
   .rp-textarea::placeholder { color: var(--text3); }
-  .rp-textarea:focus { border-color: rgba(0,200,224,0.38); background: rgba(0,200,224,0.02); box-shadow: 0 0 0 3px rgba(0,200,224,0.06); }
+  .rp-textarea:focus { border-color: rgba(0,200,224,0.50); background: rgba(0,200,224,0.04); box-shadow: 0 0 12px rgba(0,200,224,0.15); }
 
-  /* Location */
-  /* FIX 5 base: flex-wrap so GPS button can drop below on narrow screens */
-  .rp-location-wrap { position: relative; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rp-location-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .rp-location-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+  }
   .rp-location-dot {
-    position: absolute; left: 13px; top: 14px;
-    width: 7px; height: 7px; border-radius: 50%; background: var(--text3);
-    transition: background 0.3s; z-index: 1; flex-shrink: 0;
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text3);
+    transition: background 0.3s;
+    z-index: 1;
+    flex-shrink: 0;
+    pointer-events: none;
   }
   .rp-location-dot[data-status="loading"] { background: var(--yellow); animation: rpPulse 1.2s ease infinite; }
   .rp-location-dot[data-status="ok"]      { background: var(--green); }
   .rp-location-dot[data-status="error"]   { background: var(--red); }
-  .rp-input--location { padding-left: 30px; flex: 1; min-width: 0; }
+  .rp-input--location { padding-left: 30px; width: 100%; }
+
   .rp-gps-btn {
     flex-shrink: 0;
     background: rgba(0,200,224,0.08); border: 1px solid rgba(0,200,224,0.20);
@@ -690,42 +812,46 @@ const styles = `
     font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
     color: var(--cyan); cursor: pointer; white-space: nowrap;
     transition: background 0.18s, border-color 0.18s;
-    min-height: 44px;
+    min-height: 44px; align-self: stretch;
+    display: flex; align-items: center;
   }
   .rp-gps-btn:hover { background: rgba(0,200,224,0.15); border-color: rgba(0,200,224,0.38); }
+
+  .rp-coords-badge {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: rgba(0,200,224,0.04); border: 1px solid rgba(0,200,224,0.10);
+    border-radius: 7px; padding: 7px 12px;
+  }
+  .rp-coords-icon { font-size: 12px; flex-shrink: 0; }
+  .rp-coords-text {
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 400;
+    color: var(--text3); font-variant-numeric: tabular-nums; flex: 1;
+  }
 
   .rp-gps-acquiring { display: flex; align-items: center; gap: 9px; margin-top: 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: rgba(245,200,66,0.65); line-height: 1.5; }
   .rp-gps-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; animation: gpsPulse 1.1s ease infinite; }
   @keyframes gpsPulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.3; transform:scale(0.7); } }
 
-  .rp-gps-result { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-  .rp-gps-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .rp-gps-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   .rp-acc-badge { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
   .acc-great { background: rgba(46,204,143,0.12); color: var(--green); border: 1px solid rgba(46,204,143,0.25); }
   .acc-ok    { background: rgba(245,200,66,0.10); color: var(--yellow); border: 1px solid rgba(245,200,66,0.22); }
   .acc-poor  { background: rgba(232,55,42,0.10);  color: var(--red);    border: 1px solid rgba(232,55,42,0.22); }
   .rp-acc-tip { font-family: 'DM Sans', sans-serif; font-size: 11px; color: rgba(232,55,42,0.60); }
+
   .rp-maps-verify {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
-    color: var(--cyan); background: rgba(0,200,224,0.06);
-    border: 1px solid rgba(0,200,224,0.18); border-radius: 7px;
-    padding: 7px 12px; text-decoration: none; width: fit-content;
-    transition: background 0.18s;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500;
+    color: var(--cyan);
+    text-decoration: none;
+    transition: opacity 0.18s;
+    white-space: nowrap;
   }
-  .rp-maps-verify:hover { background: rgba(0,200,224,0.12); }
+  .rp-maps-verify:hover { opacity: 0.75; }
+
   .rp-hint { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300; color: var(--text3); line-height: 1.5; }
   .rp-hint--warn { font-size: 11px; color: rgba(245,200,66,0.60); }
-  .rp-hint--info { font-size: 11.5px; color: rgba(160,200,224,0.45); line-height: 1.6; margin-top: 4px; }
-  .rp-hint--info strong { color: rgba(245,200,66,0.65); font-weight: 500; }
-  .rp-detected-address { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; padding: 9px 12px; background: rgba(46,204,143,0.05); border: 1px solid rgba(46,204,143,0.15); border-radius: 8px; }
-  .rp-detected-label { font-family: 'DM Sans', sans-serif; font-size: 9.5px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(46,204,143,0.55); }
-  .rp-detected-value { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--text2); line-height: 1.5; }
-  .rp-input--address { border-color: rgba(245,200,66,0.20) !important; }
-  .rp-input--address:focus { border-color: rgba(245,200,66,0.45) !important; background: rgba(245,200,66,0.03) !important; }
-  .rp-loc-required { font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 500; color: rgba(245,200,66,0.60); margin-left: 6px; }
 
-  /* Dropzone */
   .rp-dropzone {
     border: 1px dashed var(--border2); border-radius: 10px;
     padding: 28px 20px; display: flex; flex-direction: column; align-items: center; gap: 6px;
@@ -741,13 +867,17 @@ const styles = `
   .rp-upload-status--done      { background: rgba(46,204,143,0.08); color: var(--green);  border: 1px solid rgba(46,204,143,0.20); }
   .rp-upload-status--error     { background: rgba(232,55,42,0.08);  color: var(--red);    border: 1px solid rgba(232,55,42,0.20); }
 
-  /* Disclaimer */
   .rp-disclaimer {
     background: rgba(245,200,66,0.04); border: 1px solid rgba(245,200,66,0.13);
     border-radius: 10px; padding: 16px 18px;
     backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
     animation: rpFadeUp 0.55s ease 0.36s both;
+    display: flex; flex-direction: column; gap: 12px;
   }
+  .rp-disclaimer-header { display: flex; align-items: center; gap: 8px; }
+  .rp-disclaimer-icon { font-size: 16px; }
+  .rp-disclaimer-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(245,200,66,0.80); }
+  .rp-disclaimer-summary { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400; color: var(--text3); line-height: 1.5; margin: 0; }
   .rp-check-label { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
   .rp-checkbox { display: none; }
   .rp-check-box {
@@ -775,7 +905,6 @@ const styles = `
   }
   .rp-skip-evidence-btn:hover { background: rgba(232,55,42,0.22); }
 
-  /* Submit */
   .rp-submit {
     display: flex; align-items: center; justify-content: center; gap: 12px;
     width: 100%; padding: 15px 24px;
@@ -787,11 +916,23 @@ const styles = `
     animation: rpFadeUp 0.55s ease 0.42s both;
   }
   .rp-submit:hover:not(:disabled) { background: #38e09e; transform: translateY(-2px); }
+  .rp-submit:active:not(:disabled) { transform: translateY(0px); background: #27b885; }
   .rp-submit:disabled { opacity: 0.3; cursor: not-allowed; background: var(--surface2); color: var(--text3); }
   .rp-submit-arrow { font-size: 18px; transition: transform 0.2s; }
   .rp-submit:hover:not(:disabled) .rp-submit-arrow { transform: translateX(4px); }
+  .rp-loader {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(11, 15, 26, 0.3);
+    border-top-color: #0b0f1a;
+    border-radius: 50%;
+    animation: rpSpin 0.8s linear infinite;
+  }
+  @keyframes rpSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 
-  /* ── Sidebar ── */
   .rp-right {
     display: flex; flex-direction: column; gap: 14px;
     position: sticky; top: 76px;
@@ -802,15 +943,24 @@ const styles = `
     border: 1px solid var(--border); border-radius: var(--radius);
     padding: 18px 16px; display: flex; flex-direction: column; gap: 12px;
   }
-  .rp-sidebar-card--warn { background: rgba(245,200,66,0.05); border-color: rgba(245,200,66,0.14); }
-  .rp-sidebar-card--info { background: rgba(0,200,224,0.05); border-color: rgba(0,200,224,0.14); }
-  .rp-sidebar-card--dark { background: rgba(6,15,28,0.70); border-color: var(--border); }
+  .rp-sidebar-card--warn  { background: rgba(245,200,66,0.05); border-color: rgba(245,200,66,0.14); }
+  .rp-sidebar-card--info  { background: rgba(0,200,224,0.05);  border-color: rgba(0,200,224,0.14);  }
+  .rp-sidebar-card--track { background: rgba(46,204,143,0.05); border-color: rgba(46,204,143,0.14); }
   .rp-sidebar-title {
     font-family: 'Syne', sans-serif;
     font-size: 12px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
     color: var(--text);
   }
-  .rp-sidebar-text { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300; color: var(--text3); line-height: 1.65; }
+  .rp-sidebar-text { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300; color: var(--text3); line-height: 1.65; margin: 0; }
+  .rp-track-link {
+    display: inline-block; margin-top: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--green); background: rgba(46,204,143,0.08);
+    border: 1px solid rgba(46,204,143,0.20); border-radius: 7px;
+    padding: 8px 12px; text-decoration: none; width: fit-content;
+    transition: background 0.18s, border-color 0.18s;
+  }
+  .rp-track-link:hover { background: rgba(46,204,143,0.15); border-color: rgba(46,204,143,0.35); }
 
   .rp-hotlines { display: flex; flex-direction: column; gap: 8px; }
   .rp-hotline {
@@ -827,17 +977,7 @@ const styles = `
   .rp-hotline-number { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); }
   .rp-hotline-call { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; color: var(--h-color, var(--text3)); opacity: 0.7; }
 
-  .rp-qr-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 4px; }
-  .rp-qr-inner {
-    width: 72px; height: 72px; background: rgba(13,27,46,0.60);
-    border: 1px solid var(--border2); border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 800; color: var(--text3);
-  }
-  .rp-qr-placeholder span { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text3); text-align: center; }
-
-  /* ── Success state ── */
-  .rp-success { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 80px 24px; animation: rpFadeUp 0.5s ease both; }
+  .rp-success { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 60px 24px 40px; animation: rpFadeUp 0.5s ease both; }
   .rp-success-icon {
     width: 64px; height: 64px; border-radius: 50%;
     background: rgba(46,204,143,0.12); border: 1px solid rgba(46,204,143,0.30);
@@ -845,135 +985,81 @@ const styles = `
     font-size: 26px; color: var(--green); margin-bottom: 24px;
   }
   .rp-success-title { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
-  .rp-success-sub { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 300; color: var(--text3); max-width: 400px; line-height: 1.65; margin-bottom: 32px; }
-  .rp-btn-ghost {
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
-    color: var(--text2); background: none;
-    border: 1px solid var(--border2); border-radius: 7px;
-    padding: 10px 20px; cursor: pointer; transition: color 0.2s, border-color 0.2s;
-    min-height: 44px;
+  .rp-success-sub { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 300; color: var(--text3); max-width: 480px; line-height: 1.65; margin-bottom: 40px; }
+
+  .rp-success-actions {
+    display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 500px; width: 100%; margin: 0 auto 20px; justify-items: center;
   }
-  .rp-btn-ghost:hover { color: var(--text); border-color: rgba(0,200,224,0.35); }
+  .rp-success-card {
+    background: var(--surface); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    animation: rpFadeUp 0.55s ease both;
+    width: 100%; max-width: 400px;
+  }
+  .rp-success-card-icon { font-size: 32px; }
+  .rp-success-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+  .rp-success-card-text { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 300; color: var(--text3); line-height: 1.5; margin: 0; }
 
-  /* ══════════════════════════════════════════════════════
-     RESPONSIVE — Mobile fixes (all in one place, clear)
-  ══════════════════════════════════════════════════════ */
+  .rp-btn-primary {
+    display: inline-flex; align-items: center;
+    margin-top: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+    color: #0b0f1a; background: var(--green);
+    border: none; border-radius: 7px;
+    padding: 9px 16px; text-decoration: none; cursor: pointer;
+    transition: background 0.18s, transform 0.18s;
+    min-height: 40px;
+  }
+  .rp-btn-primary:hover { background: #38e09e; transform: translateY(-2px); }
+  .rp-btn-primary--ghost {
+    color: var(--green); background: rgba(46,204,143,0.08);
+    border: 1px solid rgba(46,204,143,0.20);
+  }
+  .rp-btn-primary--ghost:hover { background: rgba(46,204,143,0.15); border-color: rgba(46,204,143,0.35); }
 
-  /* ── Tablet and below: sidebar drops below form ── */
   @media (max-width: 860px) {
-    .rp-body {
-      padding: 0 20px 80px;
-    }
-    .rp-hero {
-      padding: 28px 0 32px;
-    }
-    /* FIX 1: Tighter font so "Incident" doesn't orphan as a ghost word */
-    .rp-title {
-      font-size: clamp(28px, 7.5vw, 52px);
-    }
-    .rp-layout {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    /* FIX 3: Form always first, sidebar always below */
+    .rp-body { padding: 0 20px 80px; }
+    .rp-hero { padding: 28px 0 32px; }
+    .rp-tracking-banner { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 24px; }
+    .rp-banner-cta { width: 100%; justify-content: center; }
+    .rp-title { font-size: clamp(28px, 7.5vw, 52px); }
+    .rp-layout { grid-template-columns: 1fr; gap: 20px; }
     .rp-left  { order: 0; }
-    .rp-right {
-      order: 1;      /* ← sidebar goes BELOW the form */
-      position: static;
-      top: auto;
-    }
-    /* Sidebar on mobile: horizontal scrollable hotlines row */
-    .rp-hotlines {
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .rp-hotline {
-      flex: 1 1 calc(50% - 4px);
-      min-width: 120px;
-    }
-    /* FIX 2: Show more step labels before fade */
-    .rp-steps {
-      padding: 12px 16px;
-      -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 36px), transparent 100%);
-      mask-image: linear-gradient(to right, black 0%, black calc(100% - 36px), transparent 100%);
-    }
+    .rp-right { order: 1; position: static; top: auto; }
+    .rp-hotlines { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+    .rp-hotline { flex: 1 1 calc(50% - 4px); min-width: 120px; }
+    .rp-steps { padding: 12px 16px; -webkit-mask-image: linear-gradient(to right, black 0%, black calc(100% - 36px), transparent 100%); mask-image: linear-gradient(to right, black 0%, black calc(100% - 36px), transparent 100%); }
   }
 
-  /* ── Small mobile (≤ 600px) ── */
   @media (max-width: 600px) {
-    /* FIX 6: Reporter fields stack vertically */
-    .rp-fields {
-      grid-template-columns: 1fr;
-    }
-    .rp-body {
-      padding: 0 16px 80px;
-    }
-    .rp-title {
-      font-size: clamp(26px, 7vw, 42px);
-    }
+    .rp-fields { grid-template-columns: 1fr; }
+    .rp-body { padding: 0 16px 80px; }
+    .rp-title { font-size: clamp(26px, 7vw, 42px); }
+    .rp-success-actions { grid-template-columns: 1fr; gap: 16px; }
+    .rp-success-card { padding: 20px 16px; }
   }
 
-  /* ── Narrow mobile (≤ 500px) ── */
   @media (max-width: 500px) {
-    /* FIX 5: GPS button wraps to full width below input */
-    .rp-location-wrap {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .rp-location-dot {
-      /* Reposition dot for stacked layout */
-      top: 14px;
-    }
-    .rp-input--location {
-      width: 100%;
-    }
-    .rp-gps-btn {
-      width: 100%;
-      text-align: center;
-      justify-content: center;
-    }
-    /* Step bar: hide labels, show dots + lines only — all 6 fit */
-    .rp-steps {
-      -webkit-mask-image: none;
-      mask-image: none;
-      justify-content: space-between;
-      padding: 10px 14px;
-    }
-    .rp-step-label {
-      width: 0;
-      font-size: 0;
-      overflow: hidden;
-      padding: 0;
-      margin: 0;
-    }
-    .rp-step-line {
-      width: 10px;
-      margin: 0 2px;
-    }
-    .rp-step-dot {
-      width: 28px;
-      height: 28px;
-      font-size: 11px;
-    }
-    /* Hotlines back to column on very narrow */
-    .rp-hotline {
-      flex: 1 1 100%;
-    }
+    .rp-location-row { flex-direction: column; align-items: stretch; }
+    .rp-gps-btn { width: 100%; justify-content: center; }
+    .rp-steps { -webkit-mask-image: none; mask-image: none; justify-content: space-between; padding: 10px 14px; }
+    .rp-step-label { width: 0; font-size: 0; overflow: hidden; padding: 0; margin: 0; }
+    .rp-step-line { width: 10px; margin: 0 2px; }
+    .rp-step-dot { width: 28px; height: 28px; font-size: 11px; }
+    .rp-hotline { flex: 1 1 100%; }
   }
 
-  /* ── Very small (≤ 380px) ── */
   @media (max-width: 380px) {
     .rp-body { padding: 0 12px 80px; }
     .rp-title { font-size: 24px; }
-    /* FIX 7: type grid stays 2-col (3-col too cramped) */
     .rp-type-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
     .rp-type-btn  { padding: 10px 8px; }
     .rp-type-icon { font-size: 18px; }
     .rp-type-label { font-size: 10px; }
   }
 
-  /* ── Animations ── */
   @keyframes rpFadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes rpPulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 `;
