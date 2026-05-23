@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../js/supabase";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import logoImage from "../assets/dsg.logo.png";
-import Footer from "../components/Footer";
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@500;700;800;900&family=Instrument+Sans:wght@400;500;600&display=swap');
@@ -112,9 +111,7 @@ const CSS = `
     display: flex; align-items: center; justify-content: center;
     padding: 10px;
   }
-  .lg-logo-ring img {
-    width: 100%; height: 100%; object-fit: contain;
-  }
+  .lg-logo-ring img { width: 100%; height: 100%; object-fit: contain; }
   .lg-brand-name {
     font-family: 'Cabinet Grotesk', sans-serif;
     font-size: 22px; font-weight: 900;
@@ -178,7 +175,7 @@ const CSS = `
   .lg-eye {
     position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
     background: none; border: none; cursor: pointer;
-    color: rgba(143, 149, 172, 0.25); padding: 0;
+    color: rgba(143,149,172,.25); padding: 0;
     display: flex; align-items: center;
     transition: color .2s;
   }
@@ -193,9 +190,7 @@ const CSS = `
     font-size: 12.5px; color: rgba(238,240,247,.35); cursor: pointer;
     user-select: none;
   }
-  .lg-remember input[type="checkbox"] {
-    accent-color: #fff9f3; cursor: pointer;
-  }
+  .lg-remember input[type="checkbox"] { accent-color: #fff9f3; cursor: pointer; }
   .lg-forgot {
     font-size: 12.5px; font-weight: 500;
     color: #8ed9df; text-decoration: none;
@@ -217,9 +212,8 @@ const CSS = `
     position: relative; overflow: hidden;
   }
   .lg-btn::after {
-    content: '';
-    position: absolute; inset: 0;
-    background: linear-gradient(135deg, rgba(26, 51, 19, 0.1), transparent);
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(26,51,19,0.1), transparent);
     opacity: 0; transition: opacity .2s;
   }
   .lg-btn:hover:not(:disabled)::after { opacity: 1; }
@@ -241,7 +235,7 @@ const CSS = `
 
   .lg-footer {
     text-align: center;
-    font-size: 12.5px; color: rgba(74, 83, 117, 0.28);
+    font-size: 12.5px; color: rgba(74,83,117,.28);
   }
   .lg-footer a {
     color: #2ECC8F; text-decoration: none; font-weight: 500;
@@ -259,7 +253,7 @@ const CSS = `
     background: rgba(46,204,143,.1);
     border: 1px solid rgba(46,204,143,.3);
     display: flex; align-items: center; justify-content: center;
-    font-size: 22px; color: #333fe6;
+    font-size: 22px; color: #2ECC8F;
   }
   .lg-success-text {
     font-family: 'Cabinet Grotesk', sans-serif;
@@ -267,12 +261,18 @@ const CSS = `
   }
   .lg-success-sub { font-size: 12.5px; color: rgba(238,240,247,.3); }
 
-  .lg-root .ft {
-    position: relative; z-index: 1;
-    width: 100%;
-    background: rgba(8, 12, 20, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  /* Checking session state — hides the form flash */
+  .lg-checking {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 60px 0;
+    font-size: 13px; color: rgba(238,240,247,.28);
+  }
+  .lg-check-spin {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(46,204,143,.2);
+    border-top-color: #2ECC8F;
+    animation: lg-rotate .7s linear infinite;
+    flex-shrink: 0;
   }
 `;
 
@@ -284,25 +284,37 @@ const ROLE_REDIRECT: Record<string, string> = {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const [success, setSuccess]   = useState(false);
-  const [error, setError]       = useState("");
+  const [email, setEmail]         = useState("");
+  const [password, setPassword]   = useState("");
+  const [remember, setRemember]   = useState(false);
+  const [showPw, setShowPw]       = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [success, setSuccess]     = useState(false);
+  const [error, setError]         = useState("");
+  // ── NEW: prevents form flash while checking existing session ──
+  const [checking, setChecking]   = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session?.user) return;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-      const path = ROLE_REDIRECT[profile?.role ?? ""] ?? "/citizen/dashboard";
-      navigate(path, { replace: true });
-    });
+    // Use onAuthStateChange so we wait for Supabase to fully
+    // restore the session from storage before deciding what to show
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!session?.user) {
+          // No session — show the login form
+          setChecking(false);
+          return;
+        }
+        // Session exists — fetch role and redirect silently
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+        const role = profile?.role?.trim().toLowerCase() ?? "";
+        navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
+      }
+    );
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async () => {
@@ -311,7 +323,6 @@ export default function Login() {
       setError("Please enter your email and password.");
       return;
     }
-
     setLoading(true);
 
     const { data: authData, error: authError } =
@@ -330,34 +341,29 @@ export default function Login() {
       .single();
 
     if (profileError || !profile?.role) {
+      // Profile may not be ready yet — retry once after a short delay
       await new Promise(res => setTimeout(res, 1500));
-
       const { data: retryProfile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", authData.user.id)
         .single();
-
       if (!retryProfile?.role) {
-        setError("Profile not ready yet. Please wait a moment and try logging in again.");
+        setError("Profile not ready yet. Please wait a moment and try again.");
         setLoading(false);
         return;
       }
-
       const role = retryProfile.role.trim().toLowerCase();
-      const redirectPath = ROLE_REDIRECT[role] ?? "/citizen/dashboard";
       setSuccess(true);
       setLoading(false);
-      setTimeout(() => navigate(redirectPath, { replace: true }), 900);
+      setTimeout(() => navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true }), 900);
       return;
     }
 
     const role = profile.role.trim().toLowerCase();
-    const redirectPath = ROLE_REDIRECT[role] ?? "/citizen/dashboard";
-
     setSuccess(true);
     setLoading(false);
-    setTimeout(() => navigate(redirectPath, { replace: true }), 900);
+    setTimeout(() => navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true }), 900);
   };
 
   return (
@@ -372,7 +378,6 @@ export default function Login() {
 
         <div className="lg-content">
 
-          {/* ← Back to Home link */}
           <Link to="/" className="lg-back-home">
             <span className="bh-arrow">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -384,7 +389,14 @@ export default function Login() {
           </Link>
 
           <div className="lg-card">
-            {success ? (
+
+            {/* While checking session — show spinner, not the form */}
+            {checking ? (
+              <div className="lg-checking">
+                <span className="lg-check-spin" />
+                Checking session…
+              </div>
+            ) : success ? (
               <div className="lg-success">
                 <div className="lg-success-ring">✓</div>
                 <div className="lg-success-text">Signed in!</div>
@@ -484,9 +496,6 @@ export default function Login() {
             )}
           </div>
         </div>
-
-        {/* Full Footer pinned at the bottom */}
-        
 
       </div>
     </>

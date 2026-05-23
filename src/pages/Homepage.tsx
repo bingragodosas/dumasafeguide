@@ -99,6 +99,53 @@ export default function Homepage() {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
 
+  // ── FIX: Track the auth listener separately to prevent redirect after logout ──
+  const authListenerRef = useRef<any>(null);
+
+  // ── Redirect already-authenticated users to their dashboard ──
+  // FIXED: Only redirect on SIGNED_IN or INITIAL_SESSION events, NEVER on SIGNED_OUT
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // === CRITICAL FIX: Don't redirect on SIGNED_OUT ===
+      if (event === "SIGNED_OUT") {
+        return;
+      }
+
+      // Ignore token refresh events
+      if (event === "TOKEN_REFRESHED") return;
+
+      // Only redirect when user is signing in or has an existing session
+      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+
+      // Make sure there's actually a user
+      if (!session?.user) return;
+
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .single();
+
+        const role = profile?.role?.trim().toLowerCase();
+        if (role && ROLE_REDIRECT[role]) {
+          navigate(ROLE_REDIRECT[role], { replace: true });
+        } else if (role) {
+          navigate("/citizen/dashboard", { replace: true });
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    });
+
+    authListenerRef.current = subscription;
+    return () => {
+      if (authListenerRef.current) {
+        authListenerRef.current.unsubscribe();
+      }
+    };
+  }, [navigate]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
@@ -109,37 +156,56 @@ export default function Homepage() {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) { setError("Please enter your email and password."); return; }
-    setLoading(true); setError(null);
-
-    const { data: authData, error: authError } =
-      await supabase.auth.signInWithPassword({ email, password });
-
-    if (authError || !authData.user) {
-      setError(authError?.message || "Login failed.");
-      setLoading(false); return;
+    if (!email || !password) { 
+      setError("Please enter your email and password."); 
+      return; 
     }
+    setLoading(true); 
+    setError(null);
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles").select("role").eq("id", authData.user.id).single();
+    try {
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({ email, password });
 
-    if (profileError || !profile?.role) {
-      await new Promise(res => setTimeout(res, 1500));
-      const { data: retryProfile } = await supabase
-        .from("profiles").select("role").eq("id", authData.user.id).single();
-      if (!retryProfile?.role) {
-        setError("Profile not ready yet. Please wait a moment and try again.");
-        setLoading(false); return;
+      if (authError || !authData.user) {
+        setError(authError?.message || "Login failed.");
+        setLoading(false); 
+        return;
       }
-      const role = retryProfile.role.trim().toLowerCase();
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError || !profile?.role) {
+        await new Promise(res => setTimeout(res, 1500));
+        const { data: retryProfile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", authData.user.id)
+          .single();
+
+        if (!retryProfile?.role) {
+          setError("Profile not ready yet. Please wait a moment and try again.");
+          setLoading(false); 
+          return;
+        }
+
+        const role = retryProfile.role.trim().toLowerCase();
+        setLoading(false);
+        navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
+        return;
+      }
+
+      const role = profile.role.trim().toLowerCase();
       setLoading(false);
       navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
-      return;
+    } catch (err: any) {
+      setError(err.message || "Login failed.");
+      setLoading(false);
     }
-
-    const role = profile.role.trim().toLowerCase();
-    setLoading(false);
-    navigate(ROLE_REDIRECT[role] ?? "/citizen/dashboard", { replace: true });
   };
 
   return (
@@ -147,9 +213,6 @@ export default function Homepage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-        /* ─────────────────────────────────────────
-           ROOT
-        ───────────────────────────────────────── */
         .hp-root {
           min-height: 100vh;
           font-family: 'DM Sans', sans-serif;
@@ -160,9 +223,6 @@ export default function Homepage() {
           max-width: 100vw;
         }
 
-        /* ─────────────────────────────────────────
-           BACKGROUND
-        ───────────────────────────────────────── */
         .hp-bg {
           position: fixed; inset: 0; z-index: -1;
           overflow: hidden;
@@ -206,7 +266,6 @@ export default function Homepage() {
           100% { transform: scale(1.08) translate(0px, 0px); }
         }
 
-        /* Floating orbs */
         .hp-orb {
           position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
           animation: orbDrift linear infinite;
@@ -236,9 +295,6 @@ export default function Homepage() {
           100% { transform: translate(0, 0) scale(1); }
         }
 
-        /* ─────────────────────────────────────────
-           911 BADGE
-        ───────────────────────────────────────── */
         .hp-badge-row {
           display: flex; justify-content: flex-end; align-items: center;
           padding: 16px 0 0 0; position: relative; z-index: 2;
@@ -320,18 +376,12 @@ export default function Homepage() {
 
         @media (max-width: 860px) { .hp-badge-slot { width: 100%; max-width: none; } }
 
-        /* ─────────────────────────────────────────
-           INNER CONTAINER
-        ───────────────────────────────────────── */
         .hp-inner {
           position: relative; z-index: 1;
           max-width: 1100px; margin: 0 auto;
           padding: 0 24px 0; width: 100%; box-sizing: border-box;
         }
 
-        /* ─────────────────────────────────────────
-           HERO
-        ───────────────────────────────────────── */
         .hp-hero {
           margin-top: 40px; margin-bottom: 72px;
           display: grid; grid-template-columns: 1fr 400px;
@@ -354,33 +404,25 @@ export default function Homepage() {
           background: #e8372a; opacity: 0.5;
         }
 
-        /* ── OPTION E: Hero heading — white title + ice-blue accent word ── */
         .hp-hero h1 {
           font-family: 'Syne', sans-serif;
           font-size: clamp(42px, 6vw, 78px);
           font-weight: 800;
           line-height: 0.95;
           letter-spacing: -0.03em;
-          color: #F8FAFC;        /* crisp white for main words */
+          color: #F8FAFC;
           margin-bottom: 24px;
-          -webkit-text-stroke: unset;
-          text-stroke: unset;
         }
-
-        /* The accent word(s) — ice blue, solid and fully visible */
         .hp-hero h1 .accent {
-          color: #A8D8FF;        /* ice blue — calm, authoritative, readable */
-          -webkit-text-stroke: 0;
-          text-stroke: 0;
+          color: #A8D8FF;
         }
 
         .hp-hero-sub {
           font-size: 16px; font-weight: 300;
-          color: rgba(168, 216, 255, 0.70); /* ice blue tint for subtitle */
+          color: rgba(168, 216, 255, 0.70);
           max-width: 400px; line-height: 1.65; margin-bottom: 36px;
         }
 
-        /* CTA button */
         .hp-hero-cta {
           display: inline-flex; align-items: center; gap: 12px;
           background: #e8372a; color: #fff; text-decoration: none;
@@ -412,9 +454,6 @@ export default function Homepage() {
         .hp-hero-cta-arrow { transition: transform 0.2s ease; }
         .hp-hero-cta:hover .hp-hero-cta-arrow { transform: translateX(4px); }
 
-        /* ─────────────────────────────────────────
-           STATS ROW
-        ───────────────────────────────────────── */
         .hp-stats {
           display: flex; align-items: center; gap: 0;
           margin-top: 48px;
@@ -446,9 +485,6 @@ export default function Homepage() {
           text-transform: uppercase; color: rgba(168,216,255,0.45);
         }
 
-        /* ─────────────────────────────────────────
-           AUTH PANEL
-        ───────────────────────────────────────── */
         .hp-auth-panel {
           background: rgba(13,27,46,0.78);
           border: 1px solid rgba(0,200,224,0.14);
@@ -501,12 +537,12 @@ export default function Homepage() {
         .hp-auth-title {
           font-family: 'Syne', sans-serif;
           font-size: 22px; font-weight: 800;
-          color: #F8FAFC;          /* white — crisp and readable */
+          color: #F8FAFC;
           margin-bottom: 4px;
         }
         .hp-auth-subtitle {
           font-size: 13px; font-weight: 300;
-          color: rgba(168,216,255,0.55); /* ice blue tint */
+          color: rgba(168,216,255,0.55);
           margin-bottom: 24px; line-height: 1.5;
         }
 
@@ -616,9 +652,6 @@ export default function Homepage() {
           box-shadow: 0 0 20px rgba(168,216,255,0.12);
         }
 
-        /* ─────────────────────────────────────────
-           SECTION DIVIDER
-        ───────────────────────────────────────── */
         .hp-divider {
           display: flex; align-items: center; gap: 16px;
           margin-bottom: 40px;
@@ -634,9 +667,6 @@ export default function Homepage() {
           background: linear-gradient(90deg, rgba(168,216,255,0.18), transparent);
         }
 
-        /* ─────────────────────────────────────────
-           QUICK ACCESS CARDS
-        ───────────────────────────────────────── */
         .hp-grid {
           display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
         }
@@ -719,9 +749,6 @@ export default function Homepage() {
         }
         .hp-card:hover .hp-card-action { gap: 10px; }
 
-        /* ─────────────────────────────────────────
-           TICKER / MARQUEE
-        ───────────────────────────────────────── */
         .hp-ticker {
           margin-top: 16px; margin-bottom: 0;
           border: 1px solid rgba(168,216,255,0.10);
@@ -762,18 +789,12 @@ export default function Homepage() {
           background: rgba(168,216,255,0.3); flex-shrink: 0;
         }
 
-        /* ─────────────────────────────────────────
-           FOOTER BRIDGE
-        ───────────────────────────────────────── */
         .hp-footer-bridge {
           height: 48px;
           background: linear-gradient(to bottom, rgba(4,16,28,0) 0%, rgba(4,16,28,1) 100%);
           pointer-events: none; position: relative; z-index: 1;
         }
 
-        /* ─────────────────────────────────────────
-           ANIMATIONS
-        ───────────────────────────────────────── */
         @keyframes fadeDown {
           from { opacity: 0; transform: translateY(-16px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -786,7 +807,6 @@ export default function Homepage() {
 
       <div className="hp-root">
 
-        {/* ── Fixed background ── */}
         <div className="hp-bg">
           <img src={homepageBg} alt="" className="hp-bg-img" aria-hidden="true" />
           <div className="hp-bg-overlay" />
@@ -794,14 +814,12 @@ export default function Homepage() {
           <div className="hp-bg-grain" />
         </div>
 
-        {/* ── Floating ambient orbs ── */}
         <div className="hp-orb hp-orb-1" />
         <div className="hp-orb hp-orb-2" />
         <div className="hp-orb hp-orb-3" />
 
         <div className="hp-inner">
 
-          {/* ── Live Status Ticker ── */}
           <div className="hp-ticker">
             <div className="hp-ticker-label">LIVE</div>
             <div className="hp-ticker-track">
@@ -814,7 +832,6 @@ export default function Homepage() {
             </div>
           </div>
 
-          {/* ── Emergency 911 badge ── */}
           <div className="hp-badge-row">
             <div className="hp-badge-slot">
               <a href="tel:911" className="hp-nav-badge">
@@ -828,12 +845,10 @@ export default function Homepage() {
             </div>
           </div>
 
-          {/* ── Hero + Login ── */}
           <section className="hp-hero">
             <div className="hp-hero-copy">
               <div className="hp-hero-eyebrow">Community Safety Platform</div>
 
-              {/* OPTION E: white headline + ice-blue accent on the key word */}
               <h1>
                 Emergency<br />
                 <span className="accent">Response</span> at Your Fingertips
@@ -849,7 +864,6 @@ export default function Homepage() {
                 <span className="hp-hero-cta-arrow">→</span>
               </Link>
 
-              {/* ── Animated Stats ── */}
               <div className="hp-stats" ref={statsRef}>
                 {STATS.map((s) => (
                   <StatCounter key={s.label} value={s.value} label={s.label} suffix={s.suffix} start={statsVisible} />
@@ -857,7 +871,6 @@ export default function Homepage() {
               </div>
             </div>
 
-            {/* ── Login Panel ── */}
             <div className="hp-auth-panel">
               <div className="hp-auth-scan" />
               <div className="hp-auth-watermark">
@@ -937,7 +950,6 @@ export default function Homepage() {
             </div>
           </section>
 
-          {/* ── Quick Access ── */}
           <div className="hp-divider">
             <span className="hp-divider-label">Quick Access</span>
             <span className="hp-divider-line" />

@@ -38,7 +38,13 @@ import ResponderIncidents  from './responder/IncidentsPage';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      basename="/dumasafeguide"
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
 
         {/* ── PUBLIC — Global Navbar + Footer ──────────────── */}

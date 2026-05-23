@@ -82,10 +82,8 @@ export default function Navbar() {
     return () => { supabase.removeChannel(ch); };
   }, [isCitizenDashboard, user]);
 
-  // ── Admin alerts count (real-time) ──────────────────────────────────────────
   useEffect(() => {
     if (!user) { setAlertCount(0); return; }
-
     const loadAlerts = async () => {
       const { count } = await supabase
         .from("alerts")
@@ -93,12 +91,10 @@ export default function Navbar() {
       setAlertCount(count ?? 0);
     };
     loadAlerts();
-
     const ch = supabase
       .channel("navbar-alerts")
       .on("postgres_changes", { event: "*", schema: "public", table: "alerts" }, loadAlerts)
       .subscribe();
-
     return () => { supabase.removeChannel(ch); };
   }, [user]);
 
@@ -109,10 +105,13 @@ export default function Navbar() {
     } catch (err) { console.error("Error fetching role:", err); }
   };
 
+  // ── FIXED: signOut first, clear state, then navigate ──
   const handleLogout = async () => {
     setMenuOpen(false);
     await supabase.auth.signOut();
-    navigate("/");
+    setUser(null);
+    setRole(null);
+    navigate("/", { replace: true });
   };
 
   const isAuthPage = ["/login", "/signup"].includes(location.pathname);
@@ -128,10 +127,10 @@ export default function Navbar() {
 
   const navLinks = (
     <>
-      <Link to="/directory" onClick={() => setMenuOpen(false)}>Directory</Link>
-      <Link to="/map" onClick={() => setMenuOpen(false)}>Map</Link>
+      <Link to="/directory"  onClick={() => setMenuOpen(false)}>Directory</Link>
+      <Link to="/map"        onClick={() => setMenuOpen(false)}>Map</Link>
       <Link to="/safetytips" onClick={() => setMenuOpen(false)}>Safety Tips</Link>
-      <Link to="/about" onClick={() => setMenuOpen(false)}>About</Link>
+      <Link to="/about"      onClick={() => setMenuOpen(false)}>About</Link>
       {user ? (
         <>
           {role === "citizen"   && <Link to="/citizen/dashboard"   onClick={() => setMenuOpen(false)}>My Dashboard</Link>}
@@ -179,30 +178,21 @@ export default function Navbar() {
               <div className="nav-drawer-user-name">{displayName}</div>
               <div className="nav-drawer-user-role">{role ?? "citizen"}</div>
             </div>
-            {/* ✅ FIXED: /alerts → /citizen/alerts */}
             {alertCount > 0 ? (
               <Link
                 to="/citizen/alerts"
                 onClick={() => setMenuOpen(false)}
                 style={{
-                  marginLeft: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#2ECC8F",
-                  textDecoration: "none",
-                  background: "rgba(46,204,143,0.1)",
-                  border: "1px solid rgba(46,204,143,0.25)",
-                  borderRadius: 20,
+                  marginLeft: "auto", display: "flex", alignItems: "center",
+                  gap: 5, fontSize: 11, fontWeight: 700, color: "#2ECC8F",
+                  textDecoration: "none", background: "rgba(46,204,143,0.1)",
+                  border: "1px solid rgba(46,204,143,0.25)", borderRadius: 20,
                   padding: "3px 9px",
                 }}
               >
                 <span style={{
-                  width: 6, height: 6, borderRadius: "50%",
-                  background: "#2ECC8F", boxShadow: "0 0 6px #2ECC8F",
-                  display: "inline-block", flexShrink: 0,
+                  width: 6, height: 6, borderRadius: "50%", background: "#2ECC8F",
+                  boxShadow: "0 0 6px #2ECC8F", display: "inline-block", flexShrink: 0,
                 }} />
                 {alertCount} alert{alertCount !== 1 ? "s" : ""}
               </Link>
@@ -226,19 +216,13 @@ export default function Navbar() {
               {role === "citizen"   && <Link to="/citizen/dashboard"   onClick={() => setMenuOpen(false)}><span className="ndl-icon">📊</span> My Dashboard</Link>}
               {role === "responder" && <Link to="/responder/dashboard" onClick={() => setMenuOpen(false)}><span className="ndl-icon">🛡</span> Responder Panel</Link>}
               {role === "admin"     && <Link to="/admin/dashboard"     onClick={() => setMenuOpen(false)}><span className="ndl-icon">⚙️</span> Admin Dashboard</Link>}
-              {/* ✅ FIXED: /alerts → /citizen/alerts */}
               {alertCount > 0 && (
                 <Link to="/citizen/alerts" onClick={() => setMenuOpen(false)}>
                   <span className="ndl-icon">🔔</span> Alerts
                   <span style={{
-                    marginLeft: "auto",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: "#2ECC8F",
-                    background: "rgba(46,204,143,0.1)",
-                    border: "1px solid rgba(46,204,143,0.25)",
-                    borderRadius: 20,
-                    padding: "2px 8px",
+                    marginLeft: "auto", fontSize: 10, fontWeight: 700, color: "#2ECC8F",
+                    background: "rgba(46,204,143,0.1)", border: "1px solid rgba(46,204,143,0.25)",
+                    borderRadius: 20, padding: "2px 8px",
                   }}>
                     {alertCount > 9 ? "9+" : alertCount}
                   </span>
@@ -256,9 +240,12 @@ export default function Navbar() {
           )}
         </nav>
 
+        {/* ── Mobile drawer logout ── */}
         {user && (
           <div className="nav-drawer-footer">
-            <button onClick={handleLogout} className="nav-drawer-logout">Sign Out</button>
+            <button onClick={handleLogout} className="nav-drawer-logout">
+              Sign Out
+            </button>
           </div>
         )}
       </div>
@@ -288,7 +275,6 @@ export default function Navbar() {
 
           {user && isCitizenDashboard && role === "citizen" && (
             <>
-              {/* ✅ FIXED: /alerts → /citizen/alerts */}
               <Link
                 to="/citizen/alerts"
                 className="csb-bell"
@@ -305,12 +291,8 @@ export default function Navbar() {
                     className="csb-bell-dot"
                     style={{
                       minWidth: alertCount > 9 ? 16 : undefined,
-                      borderRadius: 10,
-                      fontSize: 9,
-                      fontWeight: 700,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      borderRadius: 10, fontSize: 9, fontWeight: 700,
+                      display: "flex", alignItems: "center", justifyContent: "center",
                       padding: alertCount > 9 ? "0 3px" : undefined,
                     }}
                   >
@@ -328,8 +310,35 @@ export default function Navbar() {
             </>
           )}
 
+          {/* ── Desktop logout — always visible when logged in ── */}
           {user && (
-            <button onClick={handleLogout} className="nav-logout-btn">Logout</button>
+            <button
+              onClick={handleLogout}
+              className="nav-logout-btn"
+              style={{
+                cursor: "pointer",
+                padding: "8px 18px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,107,107,0.3)",
+                background: "rgba(255,107,107,0.08)",
+                color: "#FF6B6B",
+                fontSize: "13px",
+                fontWeight: 600,
+                fontFamily: "inherit",
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,107,107,0.18)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,107,107,0.55)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,107,107,0.08)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,107,107,0.3)";
+              }}
+            >
+              Logout
+            </button>
           )}
         </div>
 
