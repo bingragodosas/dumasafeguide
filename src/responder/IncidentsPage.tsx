@@ -1,21 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../js/supabase";
-import {
-  FaMapMarkerAlt,
-  FaUser,
-  FaClock,
-  FaPhone,
-  FaImage,
-  FaVideo,
-  FaExternalLinkAlt,
-  FaCheckCircle,
-  FaSearch,
-  FaStickyNote,
-  FaTimes,
-  FaShieldAlt,
-  FaHospital,
-  FaWater,
-} from "react-icons/fa";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Report {
   id: string | number;
@@ -31,615 +17,404 @@ interface Report {
   responder_id: string | null;
 }
 
-const TYPE_META: Record<string, { icon: string; color: string }> = {
-  fire:     { icon: "🔥", color: "#EF5B5B" },
-  accident: { icon: "🚗", color: "#F5C842" },
-  flood:    { icon: "🌊", color: "#5B8DEF" },
-  crime:    { icon: "🚨", color: "#EF5B9E" },
-  medical:  { icon: "🏥", color: "#2ECC8F" },
-  other:    { icon: "⚠️", color: "#B0B8CC" },
+// ─── Meta ─────────────────────────────────────────────────────────────────────
+
+const TYPE_META: Record<string, { icon: string; label: string; colorClass: string }> = {
+  fire:     { icon: "🔥", label: "Fire",     colorClass: "t-fire"     },
+  accident: { icon: "🚗", label: "Accident", colorClass: "t-accident" },
+  flood:    { icon: "🌊", label: "Flood",    colorClass: "t-flood"    },
+  crime:    { icon: "🚨", label: "Crime",    colorClass: "t-crime"    },
+  medical:  { icon: "🏥", label: "Medical",  colorClass: "t-medical"  },
+  other:    { icon: "⚠️", label: "Other",    colorClass: "t-other"    },
 };
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:       { label: "PENDING",  color: "#EF5B5B", bg: "rgba(239,91,91,.1)",   border: "rgba(239,91,91,.25)"  },
-  "in-progress": { label: "IN PROG",  color: "#F5C842", bg: "rgba(245,200,66,.1)",  border: "rgba(245,200,66,.25)" },
-  resolved:      { label: "RESOLVED", color: "#2ECC8F", bg: "rgba(46,204,143,.1)",  border: "rgba(46,204,143,.25)" },
+const STATUS_META: Record<string, { label: string; colorClass: string }> = {
+  pending:       { label: "PENDING",     colorClass: "s-pending"     },
+  "in-progress": { label: "IN PROGRESS", colorClass: "s-progress"    },
+  resolved:      { label: "RESOLVED",    colorClass: "s-resolved"    },
 };
 
-// ── Agency contacts per incident type ────────────────────────────────────────
-interface Agency {
-  label: string;
-  number: string;
-  icon: string;
-  color: string;
-  note?: string; // small descriptor
-}
-
-const AGENCY_CONTACTS: Record<string, Agency[]> = {
+const AGENCY_CONTACTS: Record<string, { label: string; number: string; icon: string; colorClass: string; note: string }[]> = {
   fire: [
-    { label: "BFP Dumaguete",   number: "422-2022", icon: "🔥", color: "#EF5B5B", note: "Bureau of Fire Protection" },
-    { label: "CDRRMO",          number: "422-3008", icon: "🌀", color: "#F5C842", note: "City Disaster Risk Reduction" },
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#5B8DEF", note: "Philippine National Police" },
+    { label: "BFP Dumaguete",       number: "422-2022", icon: "🔥", colorClass: "ag-red",   note: "Bureau of Fire Protection"      },
+    { label: "CDRRMO",              number: "422-3008", icon: "🌀", colorClass: "ag-amber", note: "City Disaster Risk Reduction"    },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-blue",  note: "Philippine National Police"     },
   ],
   flood: [
-    { label: "CDRRMO",          number: "422-3008", icon: "🌊", color: "#5B8DEF", note: "City Disaster Risk Reduction" },
-    { label: "PDRRMO",          number: "422-3006", icon: "🌀", color: "#F5C842", note: "Provincial DRRMO" },
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#EF5B9E", note: "Philippine National Police" },
-    { label: "LDRRMO",          number: "422-3007", icon: "🏛️", color: "#B0B8CC", note: "Local DRRMO Office" },
+    { label: "CDRRMO",              number: "422-3008", icon: "🌊", colorClass: "ag-blue",  note: "City Disaster Risk Reduction"   },
+    { label: "PDRRMO",              number: "422-3006", icon: "🌀", colorClass: "ag-amber", note: "Provincial DRRMO"               },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-pink",  note: "Philippine National Police"    },
+    { label: "LDRRMO",              number: "422-3007", icon: "🏛️", colorClass: "ag-slate", note: "Local DRRMO Office"            },
   ],
   medical: [
-    { label: "Holy Child Hospital",  number: "422-5555", icon: "🏥", color: "#2ECC8F", note: "Primary Hospital" },
-    { label: "Silliman University Medical Center", number: "422-2691", icon: "🏨", color: "#5B8DEF", note: "SUMC Emergency" },
-    { label: "PDRRMO",          number: "422-3006", icon: "🚑", color: "#F5C842", note: "Provincial DRRMO Ambulance" },
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#EF5B9E", note: "For security escort" },
+    { label: "Holy Child Hospital", number: "422-5555", icon: "🏥", colorClass: "ag-green", note: "Primary Hospital"              },
+    { label: "SUMC Emergency",      number: "422-2691", icon: "🏨", colorClass: "ag-blue",  note: "Silliman University Medical"   },
+    { label: "PDRRMO",              number: "422-3006", icon: "🚑", colorClass: "ag-amber", note: "Provincial DRRMO Ambulance"    },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-pink",  note: "Security escort"              },
   ],
   accident: [
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#5B8DEF", note: "Philippine National Police" },
-    { label: "Holy Child Hospital",  number: "422-5555", icon: "🏥", color: "#2ECC8F", note: "Emergency Room" },
-    { label: "CDRRMO",          number: "422-3008", icon: "🌀", color: "#F5C842", note: "City Disaster Risk Reduction" },
-    { label: "BFP Dumaguete",   number: "422-2022", icon: "🔥", color: "#EF5B5B", note: "Rescue / Extrication" },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-blue",  note: "Philippine National Police"   },
+    { label: "Holy Child Hospital", number: "422-5555", icon: "🏥", colorClass: "ag-green", note: "Emergency Room"               },
+    { label: "CDRRMO",              number: "422-3008", icon: "🌀", colorClass: "ag-amber", note: "City Disaster Risk Reduction"  },
+    { label: "BFP Dumaguete",       number: "422-2022", icon: "🔥", colorClass: "ag-red",   note: "Rescue / Extrication"         },
   ],
   crime: [
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#5B8DEF", note: "Philippine National Police" },
-    { label: "NBI Dumaguete",   number: "422-4126", icon: "🕵️", color: "#EF5B9E", note: "National Bureau of Investigation" },
-    { label: "CDRRMO",          number: "422-3008", icon: "🌀", color: "#F5C842", note: "For crowd control support" },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-blue",  note: "Philippine National Police"   },
+    { label: "NBI Dumaguete",       number: "422-4126", icon: "🕵️", colorClass: "ag-pink",  note: "National Bureau of Investigation" },
+    { label: "CDRRMO",              number: "422-3008", icon: "🌀", colorClass: "ag-amber", note: "Crowd control support"        },
   ],
   other: [
-    { label: "CDRRMO",          number: "422-3008", icon: "🌀", color: "#F5C842", note: "City Disaster Risk Reduction" },
-    { label: "PNP Dumaguete",   number: "422-8708", icon: "👮", color: "#5B8DEF", note: "Philippine National Police" },
-    { label: "BFP Dumaguete",   number: "422-2022", icon: "🔥", color: "#EF5B5B", note: "Bureau of Fire Protection" },
-    { label: "PDRRMO",          number: "422-3006", icon: "🏥", color: "#2ECC8F", note: "Provincial DRRMO" },
+    { label: "CDRRMO",              number: "422-3008", icon: "🌀", colorClass: "ag-amber", note: "City Disaster Risk Reduction"  },
+    { label: "PNP Dumaguete",       number: "422-8708", icon: "👮", colorClass: "ag-blue",  note: "Philippine National Police"   },
+    { label: "BFP Dumaguete",       number: "422-2022", icon: "🔥", colorClass: "ag-red",   note: "Bureau of Fire Protection"    },
+    { label: "PDRRMO",              number: "422-3006", icon: "🏥", colorClass: "ag-green", note: "Provincial DRRMO"             },
   ],
 };
 
-const INC_STYLE = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+const RESOLUTION_TYPES = [
+  { id: "forwarded",      label: "Forwarded to Department",    sub: "Handed off to appropriate agency",    icon: "↗", colorClass: "rt-blue"  },
+  { id: "follow-up",      label: "Resolved — Needs Follow-Up", sub: "Addressed but monitoring required",   icon: "⟳", colorClass: "rt-amber" },
+  { id: "fully-resolved", label: "Fully Resolved",             sub: "No additional action needed",         icon: "✓", colorClass: "rt-green" },
+];
 
-  .rinc-root { font-family: 'IBM Plex Sans', sans-serif; color: #E8F0FF; }
+// ─── Inline SVG icons (zero deps) ────────────────────────────────────────────
 
-  .rinc-page-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
-  .rinc-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: rgba(232,240,255,0.28); letter-spacing: .18em; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-  .rinc-eyebrow::before { content: ''; width: 14px; height: 1px; background: #EF5B5B; display: block; }
-  .rinc-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -.03em; }
-  .rinc-subtitle { font-size: 10.5px; color: rgba(239,91,91,0.45); margin-top: 5px; font-family: 'IBM Plex Mono', monospace; }
+const Ico = {
+  MapPin: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  ),
+  User: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  Phone: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  Search: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block" }}>
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  ),
+  Check: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  Note: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block" }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+  ),
+  X: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block" }}>
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+  Image: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle" }}>
+      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+    </svg>
+  ),
+  Video: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle" }}>
+      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+  ),
+  ExternalLink: () => (
+    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle" }}>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  ),
+  Route: () => (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a1.5 1.5 0 0 0 1.06-.44l2.7-2.7A1.5 1.5 0 0 0 21.7 15V5"/><path d="M18 5a3 3 0 0 0-3-3H9L6 5"/><circle cx="18" cy="5" r="3"/>
+    </svg>
+  ),
+};
 
-  /* Controls */
-  .rinc-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-  .rinc-search-wrap { position: relative; flex: 1; min-width: 180px; }
-  .rinc-search-ic { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: rgba(232,240,255,0.25); font-size: 12px; pointer-events: none; }
-  .rinc-search {
-    width: 100%; background: rgba(4,15,30,0.9); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; padding: 9px 12px 9px 32px;
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 12.5px; color: #E8F0FF; outline: none;
-    transition: border-color .2s;
-  }
-  .rinc-search::placeholder { color: rgba(232,240,255,0.2); }
-  .rinc-search:focus { border-color: rgba(239,91,91,0.35); }
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-  .rinc-filter-chips { display: flex; gap: 5px; flex-wrap: wrap; }
-  .rinc-chip {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; padding: 5px 11px;
-    border-radius: 5px; border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.04); color: rgba(232,240,255,0.45);
-    cursor: pointer; transition: all .15s;
-  }
-  .rinc-chip.active { background: rgba(239,91,91,0.1); border-color: rgba(239,91,91,0.3); color: #EF5B5B; }
-  .rinc-chip:hover:not(.active) { border-color: rgba(255,255,255,0.2); color: rgba(232,240,255,0.7); }
+const STYLES = `
+:root {
+  --ink:   #06101C;
+  --s1:    #070F1B;
+  --s2:    #050D17;
+  --edge:  rgba(255,255,255,0.07);
+  --text:  #D8EAF8;
+  --muted: rgba(216,234,248,0.45);
+  --dim:   rgba(216,234,248,0.22);
+  --red:   #F33;
+  --amber: #F90;
+  --blue:  #4D9EFF;
+  --green: #00DC82;
+  --pink:  #FF4DA6;
+  --slate: #8899BB;
+  --font-head: 'Bebas Neue','Arial Narrow',Arial,sans-serif;
+  --font-mono: 'IBM Plex Mono','Fira Mono',monospace;
+  --font-body: 'DM Sans',system-ui,sans-serif;
+}
+@keyframes fadeIn  { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+@keyframes spin    { to{transform:rotate(360deg)} }
+@keyframes modalIn { from{opacity:0;transform:scale(.94) translateY(14px)} to{opacity:1;transform:none} }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+.ri{font-family:var(--font-body);color:var(--text);min-height:100vh;background:var(--ink)}
 
-  /* Tabs */
-  .rinc-tabs { display: flex; gap: 4px; margin-bottom: 14px; background: rgba(4,15,30,0.6); border: 1px solid rgba(255,255,255,0.07); border-radius: 9px; padding: 4px; width: fit-content; }
-  .rinc-tab {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 500;
-    padding: 6px 14px; border-radius: 6px; border: none;
-    color: rgba(232,240,255,0.4); background: transparent;
-    cursor: pointer; letter-spacing: .08em; transition: all .15s;
-  }
-  .rinc-tab.active { background: rgba(239,91,91,0.12); color: #EF5B5B; border: 1px solid rgba(239,91,91,0.25); }
-  .rinc-tab:hover:not(.active) { color: rgba(232,240,255,0.7); }
+/* ── Header ── */
+.ri-hd{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.ri-eyebrow{font-family:var(--font-mono);font-size:10px;color:rgba(243,51,51,.6);letter-spacing:.28em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ri-eyebrow::before{content:'';display:block;width:20px;height:1px;background:var(--red);opacity:.5}
+.ri-title{font-family:var(--font-head);font-size:42px;font-weight:400;color:#fff;letter-spacing:.04em;line-height:1}
 
-  /* Grid */
-  .rinc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+/* ── Tabs ── */
+.ri-tabs{display:flex;gap:3px;margin-bottom:16px;background:rgba(6,17,32,.8);border:1px solid var(--edge);border-radius:10px;padding:4px;width:fit-content}
+.ri-tab{font-family:var(--font-mono);font-size:9.5px;font-weight:600;padding:7px 16px;border-radius:7px;border:1px solid transparent;color:rgba(216,234,248,.3);background:transparent;cursor:pointer;letter-spacing:.1em;transition:color .15s,background .15s,border-color .15s}
+.ri-tab:hover:not(.active){color:rgba(216,234,248,.65)}
+.ri-tab.active{background:rgba(243,51,51,.1);border-color:rgba(243,51,51,.25);color:var(--red)}
 
-  /* Card */
-  .rinc-card {
-    background: rgba(4,15,30,0.88); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px; overflow: hidden; transition: border-color .2s, transform .2s;
-    backdrop-filter: blur(8px);
-  }
-  .rinc-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-1px); }
-  .rinc-card-top { height: 3px; background: var(--card-accent); }
-  .rinc-card-body { padding: 14px; }
+/* ── Controls ── */
+.ri-controls{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.ri-srch-wrap{position:relative;flex:1;min-width:200px}
+.ri-srch-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);pointer-events:none}
+.ri-srch{width:100%;background:rgba(6,17,32,.9);border:1px solid var(--edge);border-radius:9px;padding:10px 12px 10px 36px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;transition:border-color .2s}
+.ri-srch::placeholder{color:var(--dim)}
+.ri-srch:focus{border-color:rgba(243,51,51,.3)}
+.ri-chips{display:flex;gap:5px;flex-wrap:wrap}
+.ri-chip{font-family:var(--font-mono);font-size:8.5px;padding:6px 11px;border-radius:6px;border:1px solid var(--edge);background:rgba(255,255,255,.02);color:var(--muted);cursor:pointer;transition:all .15s;letter-spacing:.04em}
+.ri-chip:hover:not(.active){border-color:rgba(255,255,255,.16);color:var(--text)}
+.ri-chip.active{background:rgba(243,51,51,.1);border-color:rgba(243,51,51,.3);color:var(--red)}
 
-  .rinc-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-  .rinc-card-title { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--card-accent); text-transform: capitalize; }
-  .rinc-status-badge {
-    font-family: 'IBM Plex Mono', monospace; font-size: 7.5px; padding: 3px 8px; border-radius: 4px;
-    background: var(--ib-bg); color: var(--ib-text); border: 1px solid var(--ib-border); white-space: nowrap;
-  }
+/* ── Grid ── */
+.ri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 
-  .rinc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 9px; }
-  .rinc-field { display: flex; flex-direction: column; gap: 2px; padding: 7px 9px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; }
-  .rinc-field-label { font-family: 'IBM Plex Mono', monospace; font-size: 7.5px; color: rgba(232,240,255,0.28); letter-spacing: .08em; text-transform: uppercase; }
-  .rinc-field-val { font-size: 11.5px; color: rgba(232,240,255,0.72); line-height: 1.4; }
+/* ── Card ── */
+.ri-card{background:rgba(6,17,32,.92);border:1px solid var(--edge);border-radius:14px;overflow:hidden;transition:border-color .2s,transform .2s;animation:fadeIn .2s ease both;position:relative}
+.ri-card:hover{border-color:rgba(255,255,255,.13);transform:translateY(-2px)}
+.ri-card-bar{height:2px}
+.ri-card.t-fire    .ri-card-bar{background:var(--red)}
+.ri-card.t-accident .ri-card-bar{background:var(--amber)}
+.ri-card.t-flood   .ri-card-bar{background:var(--blue)}
+.ri-card.t-crime   .ri-card-bar{background:var(--pink)}
+.ri-card.t-medical .ri-card-bar{background:var(--green)}
+.ri-card.t-other   .ri-card-bar{background:var(--slate)}
 
-  .rinc-desc { font-size: 11.5px; color: rgba(232,240,255,0.48); line-height: 1.6; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 9px; }
+.ri-card-body{padding:15px}
+.ri-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.ri-card-label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.ri-card.t-fire     .ri-card-label{color:var(--red)}
+.ri-card.t-accident .ri-card-label{color:var(--amber)}
+.ri-card.t-flood    .ri-card-label{color:var(--blue)}
+.ri-card.t-crime    .ri-card-label{color:var(--pink)}
+.ri-card.t-medical  .ri-card-label{color:var(--green)}
+.ri-card.t-other    .ri-card-label{color:var(--slate)}
 
-  /* ── Evidence preview (inline on card) ── */
-  .rinc-evidence-wrap {
-    position: relative; width: 100%; border-radius: 8px; overflow: hidden;
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.07);
-    margin-bottom: 9px;
-  }
-  .rinc-evidence-img {
-    width: 100%; max-height: 190px; object-fit: cover; display: block;
-    transition: transform .25s, opacity .2s; cursor: zoom-in;
-  }
-  .rinc-evidence-img:hover { opacity: .9; transform: scale(1.015); }
-  .rinc-evidence-video {
-    width: 100%; max-height: 190px; display: block; background: #000; outline: none;
-  }
-  .rinc-evidence-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 5px 9px; border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(4,15,30,0.6);
-  }
-  .rinc-evidence-type {
-    display: flex; align-items: center; gap: 5px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: rgba(91,141,239,0.75);
-  }
-  .rinc-evidence-link {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px;
-    color: rgba(232,240,255,0.35); text-decoration: none; transition: color .15s;
-  }
-  .rinc-evidence-link:hover { color: rgba(232,240,255,0.75); }
+.ri-mine-tag{font-family:var(--font-mono);font-size:7.5px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(243,51,51,.1);color:rgba(243,51,51,.8);border:1px solid rgba(243,51,51,.2)}
 
-  /* Lightbox */
-  .rinc-lightbox {
-    position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center;
-    animation: rIncFadeIn .2s ease; cursor: zoom-out; padding: 24px;
-  }
-  @keyframes rIncFadeIn { from { opacity:0; } to { opacity:1; } }
-  .rinc-lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; object-fit: contain; cursor: default; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-  .rinc-lightbox-close {
-    position: fixed; top: 18px; right: 22px; font-size: 22px; color: rgba(255,255,255,0.6);
-    cursor: pointer; background: none; border: none; line-height: 1;
-    transition: color .15s;
-  }
-  .rinc-lightbox-close:hover { color: #fff; }
+/* Status badge */
+.ri-badge{font-family:var(--font-mono);font-size:8px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap;border:1px solid rgba(255,255,255,.07)}
+.ri-badge.s-pending {background:rgba(243,51,51,.1);color:var(--red)}
+.ri-badge.s-progress{background:rgba(255,153,0,.1);color:var(--amber)}
+.ri-badge.s-resolved{background:rgba(0,220,130,.1);color:var(--green)}
 
-  /* Action bar */
-  .rinc-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
-  .rinc-action-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
-    padding: 5px 12px; border-radius: 5px; border: 1px solid; cursor: pointer;
-    transition: background .15s, opacity .15s;
-  }
-  .rinc-action-btn:disabled { opacity: .35; cursor: not-allowed; }
-  .rinc-btn-claim   { background: rgba(239,91,91,0.08);  border-color: rgba(239,91,91,0.3);  color: #EF5B5B; }
-  .rinc-btn-claim:hover:not(:disabled)   { background: rgba(239,91,91,0.18); }
-  .rinc-btn-resolve { background: rgba(46,204,143,0.08); border-color: rgba(46,204,143,0.3); color: #2ECC8F; }
-  .rinc-btn-resolve:hover:not(:disabled) { background: rgba(46,204,143,0.18); }
-  .rinc-btn-maps    { background: rgba(91,141,239,0.07); border-color: rgba(91,141,239,0.25); color: #5B8DEF; text-decoration: none; }
-  .rinc-btn-maps:hover { background: rgba(91,141,239,0.15); }
+/* Fields */
+.ri-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
+.ri-field{padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;display:flex;flex-direction:column;gap:3px}
+.ri-field-lbl{font-family:var(--font-mono);font-size:7.5px;font-weight:500;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:4px}
+.ri-field-val{font-size:12px;font-weight:500;color:var(--muted);line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ri-field-tel{color:var(--green);text-decoration:none}
+.ri-field-tel:hover{text-decoration:underline}
 
-  .rinc-spinner { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); border-top-color: #EF5B5B; animation: rIncSpin .7s linear infinite; }
-  @keyframes rIncSpin { to { transform: rotate(360deg); } }
-  .rinc-empty { text-align: center; padding: 48px 0; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: rgba(232,240,255,0.18); letter-spacing: .1em; }
-  .rinc-mine-tag {
-    font-family: 'IBM Plex Mono', monospace; font-size: 7.5px; padding: 2px 7px; border-radius: 4px;
-    background: rgba(239,91,91,0.08); color: rgba(239,91,91,0.7); border: 1px solid rgba(239,91,91,0.2);
-  }
+.ri-desc{font-size:12px;font-weight:300;color:rgba(216,234,248,.4);line-height:1.6;padding:9px 11px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:7px;margin-bottom:10px}
 
-  /* ══════════════════════════════════════
-     RESOLUTION NOTE MODAL
-  ══════════════════════════════════════ */
-  .rinc-modal-backdrop {
-    position: fixed; inset: 0; z-index: 10000;
-    background: rgba(0,0,0,0.75);
-    backdrop-filter: blur(6px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px;
-    animation: rIncFadeIn .2s ease;
-  }
+/* Evidence */
+.ri-ev-wrap{border-radius:9px;overflow:hidden;background:rgba(0,0,0,.3);border:1px solid var(--edge);margin-bottom:10px}
+.ri-ev-img{width:100%;max-height:180px;object-fit:cover;display:block;cursor:zoom-in;transition:opacity .2s,transform .3s}
+.ri-ev-img:hover{opacity:.9;transform:scale(1.02)}
+.ri-ev-video{width:100%;max-height:180px;display:block;background:#000}
+.ri-ev-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-top:1px solid var(--edge);background:rgba(6,17,32,.7)}
+.ri-ev-type{display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:8px;color:rgba(77,158,255,.7)}
+.ri-ev-link{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8px;color:var(--dim);text-decoration:none;transition:color .15s}
+.ri-ev-link:hover{color:var(--text)}
 
-  .rinc-modal {
-    background: linear-gradient(180deg, #040f1e 0%, #020c18 100%);
-    border: 1px solid rgba(46,204,143,0.2);
-    border-radius: 16px;
-    width: 100%; max-width: 480px;
-    max-height: 90vh; overflow-y: auto;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px rgba(46,204,143,0.08);
-    animation: rModalIn .25s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  @keyframes rModalIn {
-    from { opacity: 0; transform: scale(0.93) translateY(16px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-  }
+/* Actions */
+.ri-actions{display:flex;gap:7px;flex-wrap:wrap;padding-top:12px;border-top:1px solid rgba(255,255,255,.05)}
+.ri-btn{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9px;font-weight:700;padding:6px 13px;border-radius:7px;cursor:pointer;border:1px solid;transition:background .15s,transform .12s;text-decoration:none;letter-spacing:.04em;white-space:nowrap}
+.ri-btn:hover{transform:translateY(-1px)}
+.ri-btn:active{transform:none}
+.ri-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.ri-btn-claim  {background:rgba(243,51,51,.08);border-color:rgba(243,51,51,.3);color:var(--red)}
+.ri-btn-claim:hover:not(:disabled){background:rgba(243,51,51,.16)}
+.ri-btn-resolve{background:rgba(0,220,130,.08);border-color:rgba(0,220,130,.28);color:var(--green)}
+.ri-btn-resolve:hover:not(:disabled){background:rgba(0,220,130,.16)}
+.ri-btn-nav    {background:rgba(77,158,255,.07);border-color:rgba(77,158,255,.25);color:var(--blue)}
+.ri-btn-nav:hover{background:rgba(77,158,255,.14)}
 
-  .rinc-modal-header {
-    padding: 20px 22px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-    position: relative;
-  }
-  .rinc-modal-header::after {
-    content: '';
-    position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, rgba(46,204,143,0.5), rgba(46,204,143,0.1), transparent 70%);
-  }
+/* ── Lightbox ── */
+.ri-lb{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;animation:fadeIn .2s ease}
+.ri-lb img{max-width:100%;max-height:90vh;border-radius:10px;cursor:default;object-fit:contain}
+.ri-lb-close{position:fixed;top:20px;right:24px;font-size:14px;color:rgba(255,255,255,.55);cursor:pointer;background:rgba(255,255,255,.1);border:none;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ri-lb-close:hover{background:rgba(255,255,255,.2);color:#fff}
 
-  .rinc-modal-icon {
-    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-    background: rgba(46,204,143,0.1); border: 1px solid rgba(46,204,143,0.25);
-    display: flex; align-items: center; justify-content: center;
-    color: #2ECC8F; font-size: 15px;
-  }
+/* ── Modal backdrop ── */
+.ri-modal-bg{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease}
+.ri-modal{background:var(--s2);border:1px solid rgba(0,220,130,.18);border-radius:18px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:modalIn .28s cubic-bezier(.34,1.56,.64,1) both;scrollbar-width:thin;scrollbar-color:rgba(0,220,130,.15) transparent}
+.ri-modal::-webkit-scrollbar{width:4px}
+.ri-modal::-webkit-scrollbar-thumb{background:rgba(0,220,130,.15);border-radius:2px}
 
-  .rinc-modal-title-wrap { flex: 1; }
-  .rinc-modal-title {
-    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
-    color: #fff; letter-spacing: -0.02em; margin-bottom: 3px;
-  }
-  .rinc-modal-subtitle {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: rgba(46,204,143,0.55); letter-spacing: 0.12em; text-transform: uppercase;
-  }
+/* Modal header */
+.ri-modal-hd{padding:20px 22px 16px;border-bottom:1px solid var(--edge);display:flex;align-items:flex-start;gap:14px;position:relative}
+.ri-modal-hd::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,rgba(0,220,130,.4),rgba(0,220,130,.1),transparent 65%)}
+.ri-modal-icon{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:rgba(0,220,130,.1);border:1px solid rgba(0,220,130,.25);display:flex;align-items:center;justify-content:center;color:var(--green)}
+.ri-modal-title-wrap{flex:1}
+.ri-modal-title{font-family:var(--font-body);font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px;margin-bottom:3px}
+.ri-modal-sub{font-family:var(--font-mono);font-size:9.5px;color:rgba(0,220,130,.55);letter-spacing:.1em;text-transform:uppercase}
+.ri-modal-close{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;transition:all .15s;flex-shrink:0}
+.ri-modal-close:hover{background:rgba(255,255,255,.12);color:var(--text)}
 
-  .rinc-modal-close {
-    background: none; border: none; cursor: pointer;
-    color: rgba(232,240,255,0.3); font-size: 16px; padding: 4px;
-    transition: color .15s; flex-shrink: 0; line-height: 1;
-  }
-  .rinc-modal-close:hover { color: rgba(232,240,255,0.8); }
+/* Modal body */
+.ri-modal-body{padding:20px 22px}
 
-  .rinc-modal-body { padding: 20px 22px; }
+/* Summary strip */
+.ri-sum{background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;flex-direction:column;gap:7px}
+.ri-sum.t-fire    {border-left:3px solid var(--red)}
+.ri-sum.t-accident{border-left:3px solid var(--amber)}
+.ri-sum.t-flood   {border-left:3px solid var(--blue)}
+.ri-sum.t-crime   {border-left:3px solid var(--pink)}
+.ri-sum.t-medical {border-left:3px solid var(--green)}
+.ri-sum.t-other   {border-left:3px solid var(--slate)}
+.ri-sum-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ri-sum-lbl{font-family:var(--font-mono);font-size:8.5px;font-weight:500;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;flex-shrink:0}
+.ri-sum-val{font-size:12.5px;font-weight:500;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
+.ri-sum-type{font-family:var(--font-mono);font-weight:700;font-size:11px;text-transform:uppercase}
+.ri-sum.t-fire     .ri-sum-type{color:var(--red)}
+.ri-sum.t-accident .ri-sum-type{color:var(--amber)}
+.ri-sum.t-flood    .ri-sum-type{color:var(--blue)}
+.ri-sum.t-crime    .ri-sum-type{color:var(--pink)}
+.ri-sum.t-medical  .ri-sum-type{color:var(--green)}
+.ri-sum.t-other    .ri-sum-type{color:var(--slate)}
 
-  /* Info banner inside modal */
-  .rinc-modal-info {
-    display: flex; align-items: flex-start; gap: 10px;
-    background: rgba(46,204,143,0.06); border: 1px solid rgba(46,204,143,0.15);
-    border-radius: 8px; padding: 11px 13px; margin-bottom: 16px;
-  }
-  .rinc-modal-info-dot {
-    width: 6px; height: 6px; border-radius: 50%; background: #2ECC8F;
-    flex-shrink: 0; margin-top: 4px;
-    animation: rIncPip 2s ease infinite;
-  }
-  @keyframes rIncPip { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-  .rinc-modal-info-text {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
-    color: rgba(46,204,143,0.8); line-height: 1.55;
-  }
+/* Section heads */
+.ri-sec-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;margin-top:18px}
+.ri-step{font-family:var(--font-mono);font-size:9px;font-weight:700;color:rgba(243,51,51,.75);border:1px solid rgba(243,51,51,.2);border-radius:5px;padding:2px 7px;flex-shrink:0}
+.ri-sec-lbl{font-family:var(--font-mono);font-size:9px;font-weight:500;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;flex:1}
+.ri-field-err{font-family:var(--font-mono);font-size:8.5px;color:var(--red);flex-shrink:0}
 
-  /* Report summary inside modal */
-  .rinc-modal-report-meta {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin-bottom: 14px; padding: 9px 12px;
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px;
-  }
-  .rinc-modal-report-type {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-    color: var(--modal-type-color, #EF5B5B);
-    text-transform: uppercase; letter-spacing: 0.08em;
-  }
-  .rinc-modal-report-sep { color: rgba(232,240,255,0.15); }
-  .rinc-modal-report-loc {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 11.5px;
-    color: rgba(232,240,255,0.45);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
-  }
+/* Resolution type cards */
+.ri-rt-grid{display:flex;flex-direction:column;gap:7px}
+.ri-rt-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid var(--edge);transition:all .15s;text-align:left;width:100%}
+.ri-rt-card:hover{transform:translateX(2px)}
 
-  /* Note textarea */
-  .rinc-modal-label {
-    display: block;
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: rgba(232,240,255,0.35); letter-spacing: 0.12em; text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .rinc-modal-label span {
-    color: #EF5B5B; margin-left: 3px;
-  }
+.ri-rt-card.rt-blue:hover,  .ri-rt-card.rt-blue.sel  {background:rgba(77,158,255,.08);border-color:rgba(77,158,255,.28)}
+.ri-rt-card.rt-amber:hover, .ri-rt-card.rt-amber.sel {background:rgba(255,153,0,.08); border-color:rgba(255,153,0,.28)}
+.ri-rt-card.rt-green:hover, .ri-rt-card.rt-green.sel {background:rgba(0,220,130,.08); border-color:rgba(0,220,130,.28)}
 
-  .rinc-modal-textarea {
-    width: 100%; min-height: 110px; resize: vertical;
-    background: rgba(4,15,30,0.9); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 9px; padding: 12px 14px;
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 13px;
-    color: #E8F0FF; outline: none; line-height: 1.6;
-    transition: border-color .2s, box-shadow .2s;
-    caret-color: #2ECC8F;
-  }
-  .rinc-modal-textarea::placeholder {
-    color: rgba(232,240,255,0.2);
-  }
-  .rinc-modal-textarea:focus {
-    border-color: rgba(46,204,143,0.4);
-    box-shadow: 0 0 0 3px rgba(46,204,143,0.07);
-  }
-  .rinc-modal-textarea.error {
-    border-color: rgba(239,91,91,0.5);
-    box-shadow: 0 0 0 3px rgba(239,91,91,0.08);
-  }
+.ri-rt-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;font-family:var(--font-mono)}
+.ri-rt-card.rt-blue  .ri-rt-icon{background:rgba(77,158,255,.1);border:1px solid rgba(77,158,255,.25);color:var(--blue)}
+.ri-rt-card.rt-amber .ri-rt-icon{background:rgba(255,153,0,.1); border:1px solid rgba(255,153,0,.25);color:var(--amber)}
+.ri-rt-card.rt-green .ri-rt-icon{background:rgba(0,220,130,.1); border:1px solid rgba(0,220,130,.25);color:var(--green)}
 
-  .rinc-modal-char-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-top: 6px;
-  }
-  .rinc-modal-error-text {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: #EF5B5B; letter-spacing: 0.06em;
-  }
-  .rinc-modal-char-count {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: rgba(232,240,255,0.2);
-  }
+.ri-rt-text{flex:1;display:flex;flex-direction:column;gap:2px}
+.ri-rt-label{font-size:13px;font-weight:600;color:rgba(216,234,248,.8)}
+.ri-rt-card.rt-blue.sel  .ri-rt-label{color:var(--blue)}
+.ri-rt-card.rt-amber.sel .ri-rt-label{color:var(--amber)}
+.ri-rt-card.rt-green.sel .ri-rt-label{color:var(--green)}
+.ri-rt-sub{font-family:var(--font-mono);font-size:8.5px;color:var(--dim)}
+.ri-rt-radio{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.15);flex-shrink:0;transition:all .15s;position:relative}
+.ri-rt-card.rt-blue.sel  .ri-rt-radio{border-color:var(--blue); background:var(--blue); box-shadow:0 0 0 3px rgba(77,158,255,.15)}
+.ri-rt-card.rt-amber.sel .ri-rt-radio{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 3px rgba(255,153,0,.15)}
+.ri-rt-card.rt-green.sel .ri-rt-radio{border-color:var(--green);background:var(--green);box-shadow:0 0 0 3px rgba(0,220,130,.15)}
+.ri-rt-card.sel .ri-rt-radio::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--s2)}
 
-  /* Modal footer */
-  .rinc-modal-footer {
-    padding: 14px 22px 20px;
-    display: flex; gap: 8px; justify-content: flex-end;
-  }
+/* Textarea */
+.ri-textarea{width:100%;min-height:90px;resize:vertical;background:rgba(6,17,32,.9);border:1px solid var(--edge);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:400;color:var(--text);outline:none;line-height:1.6;transition:border-color .2s,box-shadow .2s;caret-color:var(--green)}
+.ri-textarea::placeholder{color:var(--dim)}
+.ri-textarea:focus{border-color:rgba(0,220,130,.35);box-shadow:0 0 0 3px rgba(0,220,130,.07)}
+.ri-textarea.err{border-color:rgba(243,51,51,.45)}
+.ri-char{display:flex;justify-content:flex-end;margin-top:4px}
+.ri-char span{font-family:var(--font-mono);font-size:9px;color:var(--dim)}
 
-  .rinc-modal-btn-cancel {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-    padding: 9px 18px; border-radius: 7px; cursor: pointer;
-    background: transparent; border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(232,240,255,0.4); transition: all .15s; letter-spacing: 0.06em;
-  }
-  .rinc-modal-btn-cancel:hover { border-color: rgba(255,255,255,0.2); color: rgba(232,240,255,0.7); }
+/* Preview */
+.ri-preview{margin-top:18px;border-radius:10px;overflow:hidden;border:1px solid var(--edge);background:rgba(3,11,21,.7);animation:fadeIn .2s ease}
+.ri-preview-hd{padding:8px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--edge)}
+.ri-preview-hd span{font-family:var(--font-mono);font-size:8.5px;color:var(--dim);letter-spacing:.12em}
+.ri-preview-body{padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+.ri-prev-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ri-prev-row span:first-child{font-family:var(--font-mono);font-size:8.5px;color:rgba(216,234,248,.25);text-transform:uppercase;flex-shrink:0}
+.ri-prev-row span:last-child{font-size:12px;color:rgba(216,234,248,.65);text-align:right;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ri-prev-div{height:1px;background:var(--edge)}
+.ri-prev-block{display:flex;flex-direction:column;gap:4px}
+.ri-prev-block-lbl{font-family:var(--font-mono);font-size:8.5px;color:rgba(216,234,248,.25);text-transform:uppercase}
+.ri-prev-block-val{font-size:12px;color:rgba(216,234,248,.65);line-height:1.5}
 
-  .rinc-modal-spinner {
-    width: 11px; height: 11px; border-radius: 50%;
-    border: 2px solid rgba(46,204,143,0.2); border-top-color: #2ECC8F;
-    animation: rIncSpin .7s linear infinite; flex-shrink: 0;
-  }
+/* Agency */
+.ri-ag-sec{margin-top:22px}
+.ri-ag-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ri-ag-lbl{font-family:var(--font-mono);font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+.ri-ag-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.07),transparent)}
+.ri-ag-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.ri-ag-card{display:flex;align-items:center;gap:9px;padding:10px 12px;background:rgba(6,17,32,.7);border:1px solid var(--edge);border-radius:10px;text-decoration:none;transition:all .15s;position:relative;overflow:hidden}
+.ri-ag-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:10px 0 0 10px}
+.ri-ag-card:hover{background:rgba(255,255,255,.04);transform:translateY(-1px)}
+.ri-ag-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.ri-ag-info{flex:1;min-width:0}
+.ri-ag-name{font-size:11.5px;font-weight:600;color:rgba(216,234,248,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri-ag-note{font-family:var(--font-mono);font-size:7.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ri-ag-num{font-family:var(--font-mono);font-size:10.5px;font-weight:700;flex-shrink:0}
 
-  /* ══════════════════════════════════════
-     RESPONDER REPORT FORM STYLES
-  ══════════════════════════════════════ */
+/* Agency color classes */
+.ri-ag-card.ag-red  ::before,.ri-ag-card.ag-red  .ri-ag-num{color:var(--red)}
+.ri-ag-card.ag-amber::before,.ri-ag-card.ag-amber .ri-ag-num{color:var(--amber)}
+.ri-ag-card.ag-blue ::before,.ri-ag-card.ag-blue  .ri-ag-num{color:var(--blue)}
+.ri-ag-card.ag-green::before,.ri-ag-card.ag-green .ri-ag-num{color:var(--green)}
+.ri-ag-card.ag-pink ::before,.ri-ag-card.ag-pink  .ri-ag-num{color:var(--pink)}
+.ri-ag-card.ag-slate::before,.ri-ag-card.ag-slate .ri-ag-num{color:var(--slate)}
+.ri-ag-card.ag-red  .ri-ag-icon{background:rgba(243,51,51,.1); border:1px solid rgba(243,51,51,.2)}
+.ri-ag-card.ag-amber .ri-ag-icon{background:rgba(255,153,0,.1); border:1px solid rgba(255,153,0,.2)}
+.ri-ag-card.ag-blue  .ri-ag-icon{background:rgba(77,158,255,.1);border:1px solid rgba(77,158,255,.2)}
+.ri-ag-card.ag-green .ri-ag-icon{background:rgba(0,220,130,.1); border:1px solid rgba(0,220,130,.2)}
+.ri-ag-card.ag-pink  .ri-ag-icon{background:rgba(255,77,166,.1);border:1px solid rgba(255,77,166,.2)}
+.ri-ag-card.ag-slate .ri-ag-icon{background:rgba(136,153,187,.1);border:1px solid rgba(136,153,187,.2)}
+/* pseudo-element color tricks with CSS variables won't work for ::before, so we use box-shadow instead */
+.ri-ag-card.ag-red   {box-shadow:inset 3px 0 0 var(--red)}
+.ri-ag-card.ag-amber {box-shadow:inset 3px 0 0 var(--amber)}
+.ri-ag-card.ag-blue  {box-shadow:inset 3px 0 0 var(--blue)}
+.ri-ag-card.ag-green {box-shadow:inset 3px 0 0 var(--green)}
+.ri-ag-card.ag-pink  {box-shadow:inset 3px 0 0 var(--pink)}
+.ri-ag-card.ag-slate {box-shadow:inset 3px 0 0 var(--slate)}
 
-  /* Incident summary strip */
-  .rinc-rpt-summary {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-    border-left: 3px solid var(--modal-type-color, #EF5B5B);
-    border-radius: 9px; padding: 12px 14px; margin-bottom: 18px;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .rinc-rpt-summary-row {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  }
-  .rinc-rpt-summary-label {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: rgba(232,240,255,0.28); letter-spacing: 0.1em; text-transform: uppercase;
-    flex-shrink: 0;
-  }
-  .rinc-rpt-summary-val {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
-    color: rgba(232,240,255,0.72); text-align: right;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;
-  }
-  .rinc-rpt-type {
-    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11px;
-    color: var(--modal-type-color, #EF5B5B);
-  }
+/* Modal footer */
+.ri-modal-ft{padding:14px 22px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--edge)}
+.ri-ft-cancel{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:10px 18px;border-radius:8px;cursor:pointer;background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--muted);transition:all .15s;letter-spacing:.06em}
+.ri-ft-cancel:hover{border-color:rgba(255,255,255,.22);color:var(--text)}
+.ri-ft-confirm{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;border:1px solid;transition:all .15s;letter-spacing:.06em;display:flex;align-items:center;gap:7px}
+.ri-ft-confirm:hover:not(:disabled){filter:brightness(1.2)}
+.ri-ft-confirm:disabled{opacity:.35;cursor:not-allowed}
+.ri-ft-confirm.rt-green{background:rgba(0,220,130,.12);border-color:rgba(0,220,130,.35);color:var(--green)}
+.ri-ft-confirm.rt-blue {background:rgba(77,158,255,.12);border-color:rgba(77,158,255,.35);color:var(--blue)}
+.ri-ft-confirm.rt-amber{background:rgba(255,153,0,.12); border-color:rgba(255,153,0,.35); color:var(--amber)}
+.ri-ft-confirm.rt-none {background:rgba(0,220,130,.12);border-color:rgba(0,220,130,.35);color:var(--green)}
 
-  /* Section heads */
-  .rinc-rpt-section-head {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-  }
-  .rinc-rpt-step-badge {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700;
-    color: rgba(239,91,91,0.7); border: 1px solid rgba(239,91,91,0.2);
-    border-radius: 4px; padding: 2px 6px; flex-shrink: 0;
-  }
-  .rinc-rpt-section-label {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: rgba(232,240,255,0.35); letter-spacing: 0.12em; text-transform: uppercase;
-    flex: 1;
-  }
-  .rinc-rpt-field-error {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: #EF5B5B; flex-shrink: 0;
-  }
+/* Spinner */
+.ri-spinner{display:inline-block;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:var(--red);animation:spin .7s linear infinite}
+.ri-spinner-sm{display:inline-block;width:12px;height:12px;border-radius:50%;border:2px solid rgba(0,220,130,.2);border-top-color:var(--green);animation:spin .7s linear infinite}
+.ri-empty{text-align:center;padding:52px 0;font-family:var(--font-mono);font-size:10.5px;color:var(--dim);letter-spacing:.1em}
 
-  /* Resolution type cards */
-  .rinc-rpt-type-grid {
-    display: flex; flex-direction: column; gap: 7px; margin-bottom: 4px;
-  }
-  .rinc-rpt-type-card {
-    display: flex; align-items: center; gap: 12px;
-    padding: 11px 14px; border-radius: 9px; cursor: pointer;
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-    transition: background .15s, border-color .15s, transform .12s;
-    text-align: left; width: 100%;
-  }
-  .rinc-rpt-type-card:hover {
-    background: var(--rt-bg); border-color: var(--rt-border);
-    transform: translateX(2px);
-  }
-  .rinc-rpt-type-card.selected {
-    background: var(--rt-bg); border-color: var(--rt-border);
-    box-shadow: inset 0 0 0 1px var(--rt-border);
-  }
-  .rinc-rpt-type-icon {
-    font-size: 16px; width: 32px; height: 32px; border-radius: 8px;
-    background: var(--rt-bg); border: 1px solid var(--rt-border);
-    display: flex; align-items: center; justify-content: center;
-    color: var(--rt-color); flex-shrink: 0; font-style: normal;
-    font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 14px;
-  }
-  .rinc-rpt-type-text {
-    display: flex; flex-direction: column; gap: 2px; flex: 1;
-  }
-  .rinc-rpt-type-label {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 12.5px; font-weight: 600;
-    color: rgba(232,240,255,0.85);
-  }
-  .rinc-rpt-type-card.selected .rinc-rpt-type-label { color: var(--rt-color); }
-  .rinc-rpt-type-sub {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: rgba(232,240,255,0.28);
-  }
-  .rinc-rpt-type-radio {
-    width: 14px; height: 14px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0;
-    transition: background .15s, border-color .15s;
-    position: relative;
-  }
-  .rinc-rpt-type-radio.checked {
-    border-color: var(--rt-color);
-    background: var(--rt-color);
-    box-shadow: 0 0 0 3px var(--rt-bg);
-  }
-  .rinc-rpt-type-radio.checked::after {
-    content: ''; position: absolute; inset: 3px;
-    border-radius: 50%; background: #020c18;
-  }
-
-  /* Report preview card */
-  .rinc-rpt-preview {
-    margin-top: 16px; border-radius: 9px; overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(2,12,24,0.7);
-    animation: rIncFadeIn .2s ease both;
-  }
-  .rinc-rpt-preview-head {
-    padding: 8px 14px; background: rgba(255,255,255,0.04);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .rinc-rpt-preview-title {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: rgba(232,240,255,0.35); letter-spacing: 0.12em;
-  }
-  .rinc-rpt-preview-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
-  .rinc-rpt-preview-row {
-    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
-  }
-  .rinc-rpt-preview-row span:first-child {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: rgba(232,240,255,0.25); letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0;
-  }
-  .rinc-rpt-preview-row span:last-child {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 11.5px;
-    color: rgba(232,240,255,0.65); text-align: right;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 65%;
-  }
-  .rinc-rpt-preview-divider {
-    height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0;
-  }
-  .rinc-rpt-preview-block {
-    display: flex; flex-direction: column; gap: 3px;
-  }
-  .rinc-rpt-preview-block-label {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px;
-    color: rgba(232,240,255,0.25); letter-spacing: 0.08em; text-transform: uppercase;
-  }
-  .rinc-rpt-preview-block-val {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px;
-    color: rgba(232,240,255,0.65); line-height: 1.55;
-  }
-
-  /* Confirm button dynamic color */
-  .rinc-modal-btn-confirm {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-    padding: 9px 20px; border-radius: 7px; cursor: pointer;
-    background: var(--btn-bg, rgba(46,204,143,0.12));
-    border: 1px solid var(--btn-border, rgba(46,204,143,0.35));
-    color: var(--btn-color, #2ECC8F);
-    transition: all .15s; letter-spacing: 0.06em;
-    display: flex; align-items: center; gap: 7px;
-  }
-  .rinc-modal-btn-confirm:hover:not(:disabled) {
-    filter: brightness(1.2);
-  }
-  .rinc-modal-btn-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  /* ══════════════════════════════════════
-     AGENCY QUICK-CALL SECTION
-  ══════════════════════════════════════ */
-  .rinc-agency-section { margin-top: 18px; }
-
-  .rinc-agency-section-head {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-  }
-  .rinc-agency-section-label {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
-    color: rgba(232,240,255,0.28); letter-spacing: 0.14em; text-transform: uppercase;
-  }
-  .rinc-agency-section-line {
-    flex: 1; height: 1px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.07), transparent);
-  }
-  .rinc-agency-tip {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 11px;
-    color: rgba(232,240,255,0.25); margin-bottom: 10px; line-height: 1.5;
-  }
-
-  .rinc-agency-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
-  }
-
-  .rinc-agency-card {
-    display: flex; align-items: center; gap: 9px;
-    padding: 9px 11px;
-    background: rgba(4,15,30,0.7); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 9px; text-decoration: none;
-    transition: background .15s, border-color .15s, transform .15s;
-    cursor: pointer; position: relative; overflow: hidden;
-  }
-  .rinc-agency-card::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
-    background: var(--agency-color);
-    border-radius: 9px 0 0 9px;
-  }
-  .rinc-agency-card:hover {
-    background: rgba(255,255,255,0.04);
-    border-color: var(--agency-color-dim);
-    transform: translateY(-1px);
-  }
-
-  .rinc-agency-icon {
-    width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
-    background: var(--agency-bg);
-    border: 1px solid var(--agency-color-dim);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-  }
-
-  .rinc-agency-info { flex: 1; min-width: 0; }
-  .rinc-agency-name {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600;
-    color: rgba(232,240,255,0.85); white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
-  }
-  .rinc-agency-note {
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px;
-    color: rgba(232,240,255,0.28); margin-top: 1px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .rinc-agency-number {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-    color: var(--agency-color); flex-shrink: 0; white-space: nowrap;
-  }
-
-  .rinc-agency-call-icon {
-    position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
-    font-size: 9px; color: var(--agency-color); opacity: 0;
-    transition: opacity .15s;
-  }
-  .rinc-agency-card:hover .rinc-agency-call-icon { opacity: 0.7; }
-
-  @media (max-width: 480px) {
-    .rinc-agency-grid { grid-template-columns: 1fr; }
-    .rinc-modal { max-height: 90vh; overflow-y: auto; }
-  }
+@media(max-width:520px){
+  .ri-ag-grid{grid-template-columns:1fr}
+  .ri-fields{grid-template-columns:1fr}
+}
 `;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatRelative(ts: string) {
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -653,77 +428,38 @@ function isVideo(url: string) {
   return /\.(mp4|mov|avi|webm|mkv)/i.test(url);
 }
 
-type TabId = "all" | "mine" | "unassigned";
-
-// ── Resolution types ──────────────────────────────────────────────────────────
-interface ResolutionType {
-  id: string;
-  label: string;
-  sublabel: string;
-  icon: string;
-  color: string;
-  bg: string;
-  border: string;
+function cls(...args: (string | false | undefined | null)[]): string {
+  return args.filter(Boolean).join(" ");
 }
 
-const RESOLUTION_TYPES: ResolutionType[] = [
-  {
-    id: "forwarded",
-    label: "Forwarded to Department",
-    sublabel: "Handed off to appropriate agency",
-    icon: "↗",
-    color: "#5B8DEF",
-    bg: "rgba(91,141,239,0.08)",
-    border: "rgba(91,141,239,0.3)",
-  },
-  {
-    id: "follow-up",
-    label: "Resolved — Needs Follow-Up",
-    sublabel: "Addressed but monitoring required",
-    icon: "⟳",
-    color: "#F5C842",
-    bg: "rgba(245,200,66,0.08)",
-    border: "rgba(245,200,66,0.3)",
-  },
-  {
-    id: "fully-resolved",
-    label: "Fully Resolved",
-    sublabel: "No additional action needed",
-    icon: "✓",
-    color: "#2ECC8F",
-    bg: "rgba(46,204,143,0.08)",
-    border: "rgba(46,204,143,0.3)",
-  },
-];
+// ─── Resolution Modal ─────────────────────────────────────────────────────────
 
-// ── Resolution Note Modal ─────────────────────────────────────────────────────
-interface ResolutionModalProps {
+interface ModalProps {
   report: Report;
   responderName: string;
   onCancel: () => void;
-  onConfirm: (payload: { resolutionType: string; notes: string; actionTaken: string }) => Promise<void>;
+  onConfirm: (p: { resolutionType: string; notes: string; actionTaken: string }) => Promise<void>;
   submitting: boolean;
 }
 
-function ResolutionModal({ report, responderName, onCancel, onConfirm, submitting }: ResolutionModalProps) {
-  const [resolutionType, setResolutionType] = useState<string>("");
-  const [notes, setNotes]                   = useState("");
-  const [actionTaken, setActionTaken]       = useState("");
-  const [touched, setTouched]               = useState(false);
+function ResolutionModal({ report, responderName, onCancel, onConfirm, submitting }: ModalProps) {
+  const [resolutionType, setResolutionType] = useState("");
+  const [notes,          setNotes]          = useState("");
+  const [actionTaken,    setActionTaken]    = useState("");
+  const [touched,        setTouched]        = useState(false);
 
   const tm = TYPE_META[report.type] ?? TYPE_META.other;
   const selectedRT = RESOLUTION_TYPES.find((r) => r.id === resolutionType);
+  const isValid       = resolutionType !== "" && notes.trim().length >= 10 && actionTaken.trim().length >= 5;
+  const showTypeErr   = touched && resolutionType === "";
+  const showNotesErr  = touched && notes.trim().length < 10;
+  const showActionErr = touched && actionTaken.trim().length < 5;
 
-  const isValid = resolutionType !== "" && notes.trim().length >= 10 && actionTaken.trim().length >= 5;
-  const showTypeError    = touched && resolutionType === "";
-  const showNotesError   = touched && notes.trim().length < 10;
-  const showActionError  = touched && actionTaken.trim().length < 5;
-
-  const now = new Date();
-  const dateTimeStr = now.toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+  const dateTimeStr = new Date().toLocaleString("en-PH", {
+    month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
+
+  const agencies = AGENCY_CONTACTS[report.type] ?? AGENCY_CONTACTS.other;
 
   const handleConfirm = () => {
     setTouched(true);
@@ -731,240 +467,198 @@ function ResolutionModal({ report, responderName, onCancel, onConfirm, submittin
     onConfirm({ resolutionType, notes: notes.trim(), actionTaken: actionTaken.trim() });
   };
 
-  const agencies = AGENCY_CONTACTS[report.type] ?? AGENCY_CONTACTS.other;
+  const showPreview = notes.trim() || actionTaken.trim() || resolutionType;
 
   return (
-    <div className="rinc-modal-backdrop" onClick={onCancel}>
-      <div className="rinc-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="ri-modal-bg" onClick={onCancel}>
+      <div className="ri-modal" onClick={(e) => e.stopPropagation()}>
 
-        {/* ── Header ── */}
-        <div className="rinc-modal-header">
-          <div className="rinc-modal-icon"><FaStickyNote /></div>
-          <div className="rinc-modal-title-wrap">
-            <div className="rinc-modal-title">Responder Report</div>
-            <div className="rinc-modal-subtitle">Complete before marking resolved</div>
+        {/* Header */}
+        <div className="ri-modal-hd">
+          <div className="ri-modal-icon"><Ico.Note /></div>
+          <div className="ri-modal-title-wrap">
+            <div className="ri-modal-title">Responder Report</div>
+            <div className="ri-modal-sub">Complete before marking resolved</div>
           </div>
-          <button className="rinc-modal-close" onClick={onCancel} aria-label="Cancel">
-            <FaTimes />
-          </button>
+          <button className="ri-modal-close" onClick={onCancel}><Ico.X /></button>
         </div>
 
-        {/* ── Body ── */}
-        <div className="rinc-modal-body">
+        <div className="ri-modal-body">
 
-          {/* Incident summary strip */}
-          <div className="rinc-rpt-summary" style={{ "--modal-type-color": tm.color } as React.CSSProperties}>
-            <div className="rinc-rpt-summary-row">
-              <span className="rinc-rpt-summary-label">Incident Type</span>
-              <span className="rinc-rpt-summary-val rinc-rpt-type">{tm.icon} {report.type.toUpperCase()}</span>
+          {/* Summary */}
+          <div className={cls("ri-sum", tm.colorClass)}>
+            <div className="ri-sum-row">
+              <span className="ri-sum-lbl">Incident Type</span>
+              <span className={cls("ri-sum-val ri-sum-type")}>{tm.icon} {report.type.toUpperCase()}</span>
             </div>
-            <div className="rinc-rpt-summary-row">
-              <span className="rinc-rpt-summary-label">Location</span>
-              <span className="rinc-rpt-summary-val">{report.address || report.location || "Not specified"}</span>
+            <div className="ri-sum-row">
+              <span className="ri-sum-lbl">Location</span>
+              <span className="ri-sum-val">{report.address || report.location || "Not specified"}</span>
             </div>
-            <div className="rinc-rpt-summary-row">
-              <span className="rinc-rpt-summary-label">Date & Time</span>
-              <span className="rinc-rpt-summary-val">{dateTimeStr}</span>
+            <div className="ri-sum-row">
+              <span className="ri-sum-lbl">Date &amp; Time</span>
+              <span className="ri-sum-val">{dateTimeStr}</span>
             </div>
-            <div className="rinc-rpt-summary-row">
-              <span className="rinc-rpt-summary-label">Responder</span>
-              <span className="rinc-rpt-summary-val">{responderName}</span>
+            <div className="ri-sum-row">
+              <span className="ri-sum-lbl">Responder</span>
+              <span className="ri-sum-val">{responderName}</span>
             </div>
           </div>
 
-          {/* ── Step 1: Resolution Type ── */}
-          <div className="rinc-rpt-section-head">
-            <span className="rinc-rpt-step-badge">01</span>
-            <span className="rinc-rpt-section-label">Resolution Status</span>
-            {showTypeError && <span className="rinc-rpt-field-error">⚠ Select one</span>}
+          {/* Step 1 — Resolution Status */}
+          <div className="ri-sec-hd">
+            <span className="ri-step">01</span>
+            <span className="ri-sec-lbl">Resolution Status</span>
+            {showTypeErr && <span className="ri-field-err">⚠ Select one</span>}
           </div>
-
-          <div className="rinc-rpt-type-grid">
+          <div className="ri-rt-grid">
             {RESOLUTION_TYPES.map((rt) => (
               <button
                 key={rt.id}
-                className={`rinc-rpt-type-card${resolutionType === rt.id ? " selected" : ""}`}
-                style={{
-                  "--rt-color":  rt.color,
-                  "--rt-bg":     rt.bg,
-                  "--rt-border": rt.border,
-                } as React.CSSProperties}
-                onClick={() => setResolutionType(rt.id)}
                 type="button"
+                className={cls("ri-rt-card", rt.colorClass, resolutionType === rt.id && "sel")}
+                onClick={() => setResolutionType(rt.id)}
               >
-                <span className="rinc-rpt-type-icon">{rt.icon}</span>
-                <div className="rinc-rpt-type-text">
-                  <span className="rinc-rpt-type-label">{rt.label}</span>
-                  <span className="rinc-rpt-type-sub">{rt.sublabel}</span>
+                <span className="ri-rt-icon">{rt.icon}</span>
+                <div className="ri-rt-text">
+                  <span className="ri-rt-label">{rt.label}</span>
+                  <span className="ri-rt-sub">{rt.sub}</span>
                 </div>
-                <span className={`rinc-rpt-type-radio${resolutionType === rt.id ? " checked" : ""}`} />
+                <span className="ri-rt-radio" />
               </button>
             ))}
           </div>
 
-          {/* ── Step 2: Response Notes ── */}
-          <div className="rinc-rpt-section-head" style={{ marginTop: 18 }}>
-            <span className="rinc-rpt-step-badge">02</span>
-            <span className="rinc-rpt-section-label">Response Notes</span>
-            {showNotesError && <span className="rinc-rpt-field-error">⚠ Min. 10 characters</span>}
+          {/* Step 2 — Response Notes */}
+          <div className="ri-sec-hd">
+            <span className="ri-step">02</span>
+            <span className="ri-sec-lbl">Response Notes</span>
+            {showNotesErr && <span className="ri-field-err">⚠ Min. 10 chars</span>}
           </div>
           <textarea
-            className={`rinc-modal-textarea${showNotesError ? " error" : ""}`}
-            placeholder="Describe what happened on the ground — situation upon arrival, severity, persons involved, conditions observed…"
+            className={cls("ri-textarea", showNotesErr && "err")}
+            placeholder="Describe what happened on the ground — situation upon arrival, severity, conditions observed…"
             value={notes}
             onChange={(e) => { setNotes(e.target.value); setTouched(false); }}
             rows={3}
           />
-          <div className="rinc-modal-char-row">
-            <span />
-            <span className="rinc-modal-char-count">{notes.length} chars</span>
-          </div>
+          <div className="ri-char"><span>{notes.length} chars</span></div>
 
-          {/* ── Step 3: Action Taken ── */}
-          <div className="rinc-rpt-section-head" style={{ marginTop: 14 }}>
-            <span className="rinc-rpt-step-badge">03</span>
-            <span className="rinc-rpt-section-label">Action Taken</span>
-            {showActionError && <span className="rinc-rpt-field-error">⚠ Required</span>}
+          {/* Step 3 — Action Taken */}
+          <div className="ri-sec-hd">
+            <span className="ri-step">03</span>
+            <span className="ri-sec-lbl">Action Taken</span>
+            {showActionErr && <span className="ri-field-err">⚠ Required</span>}
           </div>
           <textarea
-            className={`rinc-modal-textarea${showActionError ? " error" : ""}`}
-            placeholder="e.g. Deployed BFP units, fire extinguished at 14:32 — area cordoned and secured, no casualties reported…"
+            className={cls("ri-textarea", showActionErr && "err")}
+            placeholder="e.g. Deployed BFP units, fire extinguished at 14:32 — area secured, no casualties…"
             value={actionTaken}
             onChange={(e) => { setActionTaken(e.target.value); setTouched(false); }}
             rows={3}
           />
-          <div className="rinc-modal-char-row">
-            <span />
-            <span className="rinc-modal-char-count">{actionTaken.length} chars</span>
-          </div>
+          <div className="ri-char"><span>{actionTaken.length} chars</span></div>
 
-          {/* ── Report Preview Card ── */}
-          {(notes.trim() || actionTaken.trim() || resolutionType) && (
-            <div className="rinc-rpt-preview">
-              <div className="rinc-rpt-preview-head">
-                <span className="rinc-rpt-preview-title">━━ RESPONDER REPORT PREVIEW ━━</span>
-              </div>
-              <div className="rinc-rpt-preview-body">
-                <div className="rinc-rpt-preview-row"><span>Incident Type</span><span>{tm.icon} {report.type.toUpperCase()}</span></div>
-                <div className="rinc-rpt-preview-row"><span>Location</span><span>{report.address || report.location || "—"}</span></div>
-                <div className="rinc-rpt-preview-row"><span>Date & Time</span><span>{dateTimeStr}</span></div>
-                <div className="rinc-rpt-preview-divider" />
+          {/* Preview */}
+          {showPreview && (
+            <div className="ri-preview">
+              <div className="ri-preview-hd"><span>RESPONDER REPORT PREVIEW</span></div>
+              <div className="ri-preview-body">
+                <div className="ri-prev-row"><span>Type</span><span>{tm.icon} {report.type.toUpperCase()}</span></div>
+                <div className="ri-prev-row"><span>Location</span><span>{report.address || report.location || "—"}</span></div>
+                <div className="ri-prev-row"><span>Date &amp; Time</span><span>{dateTimeStr}</span></div>
+                <div className="ri-prev-div" />
                 {notes.trim() && (
-                  <div className="rinc-rpt-preview-block">
-                    <span className="rinc-rpt-preview-block-label">Response Notes</span>
-                    <span className="rinc-rpt-preview-block-val">{notes.trim() || "—"}</span>
+                  <div className="ri-prev-block">
+                    <span className="ri-prev-block-lbl">Response Notes</span>
+                    <span className="ri-prev-block-val">{notes.trim()}</span>
                   </div>
                 )}
                 {actionTaken.trim() && (
-                  <div className="rinc-rpt-preview-block">
-                    <span className="rinc-rpt-preview-block-label">Action Taken</span>
-                    <span className="rinc-rpt-preview-block-val">{actionTaken.trim() || "—"}</span>
+                  <div className="ri-prev-block">
+                    <span className="ri-prev-block-lbl">Action Taken</span>
+                    <span className="ri-prev-block-val">{actionTaken.trim()}</span>
                   </div>
                 )}
-                <div className="rinc-rpt-preview-divider" />
-                <div className="rinc-rpt-preview-row">
+                <div className="ri-prev-div" />
+                <div className="ri-prev-row">
                   <span>Status</span>
-                  <span style={{ color: selectedRT?.color ?? "rgba(232,240,255,0.4)" }}>
-                    {selectedRT ? `${selectedRT.icon} ${selectedRT.label}` : "—"}
-                  </span>
+                  <span>{selectedRT ? `${selectedRT.icon} ${selectedRT.label}` : "—"}</span>
                 </div>
-                <div className="rinc-rpt-preview-row"><span>Responder</span><span>{responderName}</span></div>
+                <div className="ri-prev-row"><span>Responder</span><span>{responderName}</span></div>
               </div>
             </div>
           )}
 
-          {/* ── Agency Quick-Call ── */}
-          <div className="rinc-agency-section">
-            <div className="rinc-agency-section-head">
-              <span className="rinc-agency-section-label">// Quick Call — Recommended Agencies</span>
-              <span className="rinc-agency-section-line" />
+          {/* Agencies */}
+          <div className="ri-ag-sec">
+            <div className="ri-ag-hd">
+              <span className="ri-ag-lbl">Quick Call — Recommended Agencies</span>
+              <span className="ri-ag-line" />
             </div>
-            <p className="rinc-agency-tip">
-              Tap to call the recommended agency for a <strong style={{ color: "rgba(232,240,255,0.5)" }}>{report.type}</strong> incident.
-            </p>
-            <div className="rinc-agency-grid">
+            <div className="ri-ag-grid">
               {agencies.map((ag) => (
                 <a
                   key={ag.label}
                   href={`tel:${ag.number}`}
-                  className="rinc-agency-card"
-                  style={{
-                    "--agency-color":     ag.color,
-                    "--agency-color-dim": `${ag.color}40`,
-                    "--agency-bg":        `${ag.color}12`,
-                  } as React.CSSProperties}
+                  className={cls("ri-ag-card", ag.colorClass)}
                 >
-                  <div className="rinc-agency-icon">{ag.icon}</div>
-                  <div className="rinc-agency-info">
-                    <div className="rinc-agency-name">{ag.label}</div>
-                    {ag.note && <div className="rinc-agency-note">{ag.note}</div>}
+                  <div className="ri-ag-icon">{ag.icon}</div>
+                  <div className="ri-ag-info">
+                    <div className="ri-ag-name">{ag.label}</div>
+                    {ag.note && <div className="ri-ag-note">{ag.note}</div>}
                   </div>
-                  <div className="rinc-agency-number">{ag.number}</div>
-                  <FaPhone className="rinc-agency-call-icon" />
+                  <div className="ri-ag-num">{ag.number}</div>
                 </a>
               ))}
             </div>
           </div>
+        </div>
 
-        </div>{/* end modal-body */}
-
-        {/* ── Footer ── */}
-        <div className="rinc-modal-footer">
-          <button className="rinc-modal-btn-cancel" onClick={onCancel} disabled={submitting}>
-            CANCEL
-          </button>
+        {/* Footer */}
+        <div className="ri-modal-ft">
+          <button className="ri-ft-cancel" onClick={onCancel} disabled={submitting}>CANCEL</button>
           <button
-            className="rinc-modal-btn-confirm"
+            className={cls("ri-ft-confirm", selectedRT ? selectedRT.colorClass : "rt-none")}
             onClick={handleConfirm}
             disabled={submitting}
-            style={selectedRT ? {
-              "--btn-color":  selectedRT.color,
-              "--btn-bg":     selectedRT.bg,
-              "--btn-border": selectedRT.border,
-            } as React.CSSProperties : {}}
           >
             {submitting
-              ? <><div className="rinc-modal-spinner" /> SUBMITTING…</>
-              : <><FaCheckCircle size={10} /> SUBMIT REPORT & RESOLVE</>
+              ? <><span className="ri-spinner-sm" /> SUBMITTING…</>
+              : <><Ico.Check /> SUBMIT &amp; RESOLVE</>
             }
           </button>
         </div>
-
       </div>
     </div>
   );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
-export default function ResponderIncidentsPage() {
-  const [reports, setReports]         = useState<Report[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [responderId, setResponderId] = useState("");
-  const [responderName, setResponderName] = useState("Responder");
-  const [tab, setTab]                 = useState<TabId>("all");
-  const [filterType, setFilterType]   = useState("all");
-  const [search, setSearch]           = useState("");
-  const [claiming, setClaiming]       = useState<string | null>(null);
-  const [lightbox, setLightbox]       = useState<string | null>(null);
+// ─── Main Component ───────────────────────────────────────────────────────────
 
-  // Resolution modal state
+type TabId = "all" | "mine" | "unassigned";
+
+export default function ResponderIncidentsPage() {
+  const [reports,       setReports]       = useState<Report[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [responderId,   setResponderId]   = useState("");
+  const [responderName, setResponderName] = useState("Responder");
+  const [tab,           setTab]           = useState<TabId>("all");
+  const [filterType,    setFilterType]    = useState("all");
+  const [search,        setSearch]        = useState("");
+  const [claiming,      setClaiming]      = useState<string | null>(null);
+  const [lightbox,      setLightbox]      = useState<string | null>(null);
   const [resolveTarget, setResolveTarget] = useState<Report | null>(null);
-  const [resolving, setResolving]         = useState(false);
+  const [resolving,     setResolving]     = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setResponderId(user.id);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .single();
-        if (profile?.full_name) setResponderName(profile.full_name);
-      }
-    };
-    init();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setResponderId(user.id);
+      const { data: profile } = await supabase
+        .from("profiles").select("full_name").eq("id", user.id).single();
+      if (profile?.full_name) setResponderName(profile.full_name);
+    });
   }, []);
 
   const loadReports = async () => {
@@ -988,42 +682,33 @@ export default function ResponderIncidentsPage() {
   const claimReport = async (id: string | number) => {
     if (!responderId) return;
     setClaiming(String(id));
-    await supabase.from("reports").update({ responder_id: responderId, status: "in-progress" }).eq("id", id);
+    await supabase
+      .from("reports")
+      .update({ responder_id: responderId, status: "in-progress" })
+      .eq("id", id);
     await loadReports();
     setClaiming(null);
   };
 
-  // Called when responder clicks "Mark Resolved" — opens modal instead of resolving directly
-  const openResolveModal = (report: Report) => {
-    setResolveTarget(report);
-  };
-
-  // Called when responder confirms resolution with note
   const confirmResolve = async (payload: { resolutionType: string; notes: string; actionTaken: string }) => {
     if (!resolveTarget || !responderId) return;
     setResolving(true);
-
     const fullNote = [
       `[${payload.resolutionType.toUpperCase()}]`,
       `Response Notes: ${payload.notes}`,
       `Action Taken: ${payload.actionTaken}`,
     ].join("\n");
-
     try {
-      // 1. Save structured resolution note to incident_notes
       await supabase.from("incident_notes").insert({
         incident_id:  resolveTarget.id,
         note_text:    fullNote,
         responder_id: responderId,
       });
-
-      // 2. Update report status to resolved
       await supabase
         .from("reports")
         .update({ status: "resolved" })
         .eq("id", resolveTarget.id)
         .eq("responder_id", responderId);
-
       await loadReports();
     } finally {
       setResolving(false);
@@ -1031,43 +716,42 @@ export default function ResponderIncidentsPage() {
     }
   };
 
+  // Filtering
   let filtered = reports;
   if (tab === "mine")       filtered = filtered.filter((r) => r.responder_id === responderId);
   if (tab === "unassigned") filtered = filtered.filter((r) => !r.responder_id && r.status === "pending");
   if (filterType !== "all") filtered = filtered.filter((r) => r.type === filterType);
   if (search.trim()) {
     const q = search.toLowerCase();
-    filtered = filtered.filter(
-      (r) =>
-        r.type.includes(q) ||
-        (r.address ?? "").toLowerCase().includes(q) ||
-        (r.reporter_name ?? "").toLowerCase().includes(q) ||
-        (r.description ?? "").toLowerCase().includes(q)
+    filtered = filtered.filter((r) =>
+      r.type.includes(q) ||
+      (r.address ?? "").toLowerCase().includes(q) ||
+      (r.reporter_name ?? "").toLowerCase().includes(q) ||
+      (r.description ?? "").toLowerCase().includes(q)
     );
   }
 
   const tabs: { id: TabId; label: string; count: number }[] = [
-    { id: "all",        label: "ALL",        count: reports.length },
-    { id: "mine",       label: "MINE",       count: reports.filter((r) => r.responder_id === responderId).length },
-    { id: "unassigned", label: "UNASSIGNED", count: reports.filter((r) => !r.responder_id && r.status === "pending").length },
+    { id: "all",        label: "ALL REPORTS", count: reports.length },
+    { id: "mine",       label: "MY CASES",    count: reports.filter((r) => r.responder_id === responderId).length },
+    { id: "unassigned", label: "UNASSIGNED",  count: reports.filter((r) => !r.responder_id && r.status === "pending").length },
   ];
-
   const typeFilters = ["all", "fire", "accident", "flood", "crime", "medical", "other"];
 
   return (
     <>
-      <style>{INC_STYLE}</style>
-      <div className="rinc-root">
+      <style>{STYLES}</style>
+      <div className="ri">
 
         {/* Lightbox */}
         {lightbox && (
-          <div className="rinc-lightbox" onClick={() => setLightbox(null)}>
-            <button className="rinc-lightbox-close" onClick={() => setLightbox(null)}>✕</button>
+          <div className="ri-lb" onClick={() => setLightbox(null)}>
+            <button className="ri-lb-close" onClick={() => setLightbox(null)}><Ico.X /></button>
             <img src={lightbox} alt="Evidence" onClick={(e) => e.stopPropagation()} />
           </div>
         )}
 
-        {/* Resolution Note Modal */}
+        {/* Resolve modal */}
         {resolveTarget && (
           <ResolutionModal
             report={resolveTarget}
@@ -1078,147 +762,139 @@ export default function ResponderIncidentsPage() {
           />
         )}
 
-        <div className="rinc-page-header">
+        {/* Header */}
+        <div className="ri-hd">
           <div>
-            <div className="rinc-eyebrow">Field Operations</div>
-            <div className="rinc-title">Incidents</div>
-            <div className="rinc-subtitle">MANAGE & RESPOND TO INCIDENTS</div>
+            <div className="ri-eyebrow">Field Operations</div>
+            <div className="ri-title">INCIDENTS</div>
           </div>
-          {loading && <div className="rinc-spinner" />}
+          {loading && <div className="ri-spinner" />}
         </div>
 
         {/* Tabs */}
-        <div className="rinc-tabs">
+        <div className="ri-tabs">
           {tabs.map((t) => (
-            <button key={t.id} className={`rinc-tab${tab === t.id ? " active" : ""}`} onClick={() => setTab(t.id)}>
+            <button
+              key={t.id}
+              className={cls("ri-tab", tab === t.id && "active")}
+              onClick={() => setTab(t.id)}
+            >
               {t.label} ({t.count})
             </button>
           ))}
         </div>
 
         {/* Controls */}
-        <div className="rinc-controls">
-          <div className="rinc-search-wrap">
-            <FaSearch className="rinc-search-ic" />
+        <div className="ri-controls">
+          <div className="ri-srch-wrap">
+            <span className="ri-srch-ic"><Ico.Search /></span>
             <input
-              className="rinc-search"
+              className="ri-srch"
               placeholder="Search incidents…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="rinc-filter-chips">
+          <div className="ri-chips">
             {typeFilters.map((t) => (
               <button
                 key={t}
-                className={`rinc-chip${filterType === t ? " active" : ""}`}
+                className={cls("ri-chip", filterType === t && "active")}
                 onClick={() => setFilterType(t)}
               >
-                {t === "all" ? "ALL TYPES" : (TYPE_META[t]?.icon ?? "") + " " + t.toUpperCase()}
+                {t === "all" ? "ALL TYPES" : `${TYPE_META[t]?.icon ?? ""} ${t.toUpperCase()}`}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Grid */}
+        {/* Content */}
         {loading ? (
-          <div className="rinc-empty"><div className="rinc-spinner" /></div>
+          <div className="ri-empty"><div className="ri-spinner" style={{ margin: "0 auto" }} /></div>
         ) : filtered.length === 0 ? (
-          <div className="rinc-empty">NO INCIDENTS FOUND</div>
+          <div className="ri-empty">NO INCIDENTS FOUND</div>
         ) : (
-          <div className="rinc-grid">
+          <div className="ri-grid">
             {filtered.map((r) => {
-              const tm = TYPE_META[r.type] ?? TYPE_META.other;
+              const tm = TYPE_META[r.type]     ?? TYPE_META.other;
               const sm = STATUS_META[r.status] ?? STATUS_META.pending;
-              const isMine = r.responder_id === responderId;
-              const canClaim = !r.responder_id && r.status === "pending" && responderId.length > 0;
+              const isMine    = r.responder_id === responderId;
+              const canClaim  = !r.responder_id && r.status === "pending" && responderId.length > 0;
               const canResolve = isMine && r.status === "in-progress";
               const vid = r.evidence_url && isVideo(r.evidence_url);
 
               return (
-                <div key={String(r.id)} className="rinc-card" style={{ "--card-accent": tm.color } as React.CSSProperties}>
-                  <div className="rinc-card-top" />
-                  <div className="rinc-card-body">
-                    <div className="rinc-card-header">
-                      <div className="rinc-card-title">
+                <div key={String(r.id)} className={cls("ri-card", tm.colorClass)}>
+                  <div className="ri-card-bar" />
+                  <div className="ri-card-body">
+
+                    {/* Card top */}
+                    <div className="ri-card-top">
+                      <div className="ri-card-label">
                         <span>{tm.icon}</span>
                         <span>{r.type.replace(/_/g, " ")}</span>
-                        {isMine && <span className="rinc-mine-tag">MINE</span>}
+                        {isMine && <span className="ri-mine-tag">MINE</span>}
                       </div>
-                      <span
-                        className="rinc-status-badge"
-                        style={{ "--ib-bg": sm.bg, "--ib-text": sm.color, "--ib-border": sm.border } as React.CSSProperties}
-                      >
-                        {sm.label}
-                      </span>
+                      <span className={cls("ri-badge", sm.colorClass)}>{sm.label}</span>
                     </div>
 
-                    <div className="rinc-fields">
-                      <div className="rinc-field">
-                        <span className="rinc-field-label"><FaMapMarkerAlt size={7} style={{ marginRight: 2 }} />Location</span>
-                        <span className="rinc-field-val">{r.address || r.location || "—"}</span>
+                    {/* Fields grid */}
+                    <div className="ri-fields">
+                      <div className="ri-field">
+                        <span className="ri-field-lbl"><Ico.MapPin /> Location</span>
+                        <span className="ri-field-val">{r.address || r.location || "—"}</span>
                       </div>
-                      <div className="rinc-field">
-                        <span className="rinc-field-label"><FaUser size={7} style={{ marginRight: 2 }} />Reporter</span>
-                        <span className="rinc-field-val">{r.reporter_name || "Anonymous"}</span>
+                      <div className="ri-field">
+                        <span className="ri-field-lbl"><Ico.User /> Reporter</span>
+                        <span className="ri-field-val">{r.reporter_name || "Anonymous"}</span>
                       </div>
                       {r.reporter_contact && (
-                        <div className="rinc-field">
-                          <span className="rinc-field-label"><FaPhone size={7} style={{ marginRight: 2 }} />Contact</span>
-                          <a href={`tel:${r.reporter_contact}`} className="rinc-field-val" style={{ color: "#2ECC8F", textDecoration: "none" }}>
+                        <div className="ri-field">
+                          <span className="ri-field-lbl"><Ico.Phone /> Contact</span>
+                          <a href={`tel:${r.reporter_contact}`} className="ri-field-val ri-field-tel">
                             {r.reporter_contact}
                           </a>
                         </div>
                       )}
-                      <div className="rinc-field">
-                        <span className="rinc-field-label"><FaClock size={7} style={{ marginRight: 2 }} />Reported</span>
-                        <span className="rinc-field-val">{formatRelative(r.created_at)}</span>
+                      <div className="ri-field">
+                        <span className="ri-field-lbl"><Ico.Clock /> Reported</span>
+                        <span className="ri-field-val">{formatRelative(r.created_at)}</span>
                       </div>
                     </div>
 
-                    {r.description && (
-                      <div className="rinc-desc">{r.description}</div>
-                    )}
+                    {/* Description */}
+                    {r.description && <div className="ri-desc">{r.description}</div>}
 
-                    {/* ── Inline evidence preview ── */}
+                    {/* Evidence */}
                     {r.evidence_url && (
-                      <div className="rinc-evidence-wrap">
+                      <div className="ri-ev-wrap">
                         {vid ? (
-                          <video
-                            className="rinc-evidence-video"
-                            src={r.evidence_url}
-                            controls
-                            preload="metadata"
-                          />
+                          <video className="ri-ev-video" src={r.evidence_url} controls preload="metadata" />
                         ) : (
                           <img
-                            className="rinc-evidence-img"
+                            className="ri-ev-img"
                             src={r.evidence_url}
                             alt="Incident evidence"
                             onClick={() => setLightbox(r.evidence_url!)}
                           />
                         )}
-                        <div className="rinc-evidence-bar">
-                          <span className="rinc-evidence-type">
-                            {vid ? <FaVideo size={9} /> : <FaImage size={9} />}
+                        <div className="ri-ev-bar">
+                          <span className="ri-ev-type">
+                            {vid ? <Ico.Video /> : <Ico.Image />}
                             {vid ? "Video Evidence" : "Photo Evidence"}
                           </span>
-                          <a
-                            href={r.evidence_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rinc-evidence-link"
-                          >
-                            Open full <FaExternalLinkAlt size={7} />
+                          <a href={r.evidence_url} target="_blank" rel="noopener noreferrer" className="ri-ev-link">
+                            Open full <Ico.ExternalLink />
                           </a>
                         </div>
                       </div>
                     )}
 
-                    <div className="rinc-actions">
+                    {/* Actions */}
+                    <div className="ri-actions">
                       {canClaim && (
                         <button
-                          className="rinc-action-btn rinc-btn-claim"
+                          className="ri-btn ri-btn-claim"
                           disabled={claiming === String(r.id)}
                           onClick={() => claimReport(r.id)}
                         >
@@ -1226,12 +902,8 @@ export default function ResponderIncidentsPage() {
                         </button>
                       )}
                       {canResolve && (
-                        <button
-                          className="rinc-action-btn rinc-btn-resolve"
-                          onClick={() => openResolveModal(r)}
-                        >
-                          <FaCheckCircle size={9} />
-                          Mark Resolved
+                        <button className="ri-btn ri-btn-resolve" onClick={() => setResolveTarget(r)}>
+                          <Ico.Check /> Mark Resolved
                         </button>
                       )}
                       {r.location && (
@@ -1239,9 +911,9 @@ export default function ResponderIncidentsPage() {
                           href={`https://www.google.com/maps?q=${r.location}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rinc-action-btn rinc-btn-maps"
+                          className="ri-btn ri-btn-nav"
                         >
-                          <FaMapMarkerAlt size={9} /> Navigate
+                          <Ico.Route /> Navigate
                         </a>
                       )}
                     </div>

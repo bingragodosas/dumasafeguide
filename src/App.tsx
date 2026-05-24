@@ -1,4 +1,4 @@
-// src/App.tsx (FIXED)
+// src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout        from './pages/Layout';
@@ -20,8 +20,7 @@ import SafetyTips         from './pages/SafetyTips';
 import TermsOfService     from './pages/TermsOfService';
 import TermsOfUse         from './pages/TermsOfUse';
 
-// ── Citizen-scoped pages (same components, citizen navbar) ──────
-// ✅ NEW: These are wrappers that pass the same components but with citizen context
+// ── Citizen-scoped pages ───────────────────────────────────────
 import CitizenMap         from './citizen/CitizenMap';
 import CitizenDirectory   from './citizen/CitizenDirectory';
 import CitizenSafetyTips  from './citizen/CitizenSafetyTips';
@@ -38,6 +37,10 @@ import CitizenHistory      from './citizen/CitizenHistory';
 import CitizenReportDetail from './citizen/CitizenReportDetail';
 
 // ── Responder ──────────────────────────────────────────────────
+// NOTE: RespondersDashboard is a self-contained full-screen portal
+// (position:fixed, z-index:9000). It must NOT be wrapped in <Layout />
+// because Layout renders a global navbar that gets buried under the
+// fixed overlay and makes all links in it unclickable.
 import RespondersDashboard from './responder/Respondersdashboard';
 import ResponderAlertsPage from './responder/Responderalertspage';
 import RespondersPage      from './responder/Responderspage';
@@ -57,8 +60,6 @@ export default function App() {
 
         {/* ── PUBLIC — Global Navbar + Footer ──────────────── */}
         <Route element={<Layout />}>
-          <Route path="/privacy"          element={<PrivacyPolicy />} />
-          <Route path="/terms"            element={<TermsOfService />} />
           <Route path="/"                 element={<Homepage />} />
           <Route path="/directory"        element={<Directory />} />
           <Route path="/report"           element={<Report />} />
@@ -69,12 +70,14 @@ export default function App() {
           <Route path="/safetytips"       element={<SafetyTips />} />
           <Route path="/terms-of-use"     element={<TermsOfUse />} />
           <Route path="/map"              element={<Map />} />
+          <Route path="/privacy"          element={<PrivacyPolicy />} />
+          <Route path="/terms"            element={<TermsOfService />} />
         </Route>
 
         {/* ── STANDALONE — own full-page layout, no global navbar ── */}
-        <Route path="/login"            element={<Login />} />
-        <Route path="/signup"           element={<Signup />} />
-        <Route path="/forgot-password"  element={<ForgotPassword />} />
+        <Route path="/login"           element={<Login />} />
+        <Route path="/signup"          element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* ── ADMIN portal ─────────────────────────────────── */}
         <Route element={<ProtectedRoute allowedRole="admin" />}>
@@ -82,35 +85,35 @@ export default function App() {
         </Route>
 
         {/* ── CITIZEN portal ───────────────────────────────── */}
-        {/* ✅ FIX: Protect all citizen routes, use separate sub-routes */}
         <Route element={<ProtectedRoute allowedRole="citizen" />}>
           <Route element={<Layout />}>
-            {/* Main dashboard */}
             <Route path="/citizen/dashboard"   element={<CitizenDashboard />} />
             <Route path="/citizen/alerts"      element={<CitizenAlertsPage />} />
             <Route path="/citizen/history"     element={<CitizenHistory />} />
             <Route path="/citizen/history/:id" element={<CitizenReportDetail />} />
-            
-            {/* ✅ FIX: Citizen-scoped versions of public pages */}
-            {/* When a citizen clicks "Map" in navbar, they go to /citizen/map
-                 which keeps the citizen navbar and protects the route */}
-            <Route path="/citizen/map"        element={<CitizenMap />} />
-            <Route path="/citizen/directory"  element={<CitizenDirectory />} />
-            <Route path="/citizen/safetytips" element={<CitizenSafetyTips />} />
-            <Route path="/citizen/about"      element={<CitizenAbout />} />
-            <Route path="/citizen/report"     element={<CitizenReport />} />
+            <Route path="/citizen/map"         element={<CitizenMap />} />
+            <Route path="/citizen/directory"   element={<CitizenDirectory />} />
+            <Route path="/citizen/safetytips"  element={<CitizenSafetyTips />} />
+            <Route path="/citizen/about"       element={<CitizenAbout />} />
+            <Route path="/citizen/report"      element={<CitizenReport />} />
           </Route>
         </Route>
 
         {/* ── RESPONDER portal ─────────────────────────────── */}
+        {/*
+          ✅ NO <Layout /> wrapper here.
+          RespondersDashboard renders its own full-screen portal with
+          position:fixed + z-index:9000. Wrapping it in <Layout /> causes
+          the global navbar to render underneath the fixed overlay, making
+          every link in the navbar (including Sign Up / Sign In) unclickable.
+          The dashboard already has its own sidebar, topbar, and Sign Out button.
+        */}
         <Route element={<ProtectedRoute allowedRole="responder" />}>
-          <Route element={<Layout />}>
-            <Route path="/responder/dashboard"  element={<RespondersDashboard />} />
-            <Route path="/responder/alerts"     element={<ResponderAlertsPage />} />
-            <Route path="/responder/responders" element={<RespondersPage />} />
-            <Route path="/responder/dispatch"   element={<Dispatch />} />
-            <Route path="/responder/incidents"  element={<ResponderIncidents />} />
-          </Route>
+          <Route path="/responder/dashboard"  element={<RespondersDashboard />} />
+          <Route path="/responder/alerts"     element={<ResponderAlertsPage />} />
+          <Route path="/responder/responders" element={<RespondersPage />} />
+          <Route path="/responder/dispatch"   element={<Dispatch />} />
+          <Route path="/responder/incidents"  element={<ResponderIncidents />} />
         </Route>
 
       </Routes>

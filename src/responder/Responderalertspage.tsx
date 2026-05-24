@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../js/supabase";
-import {
-  FaBell,
-  FaExclamationTriangle,
-  FaInfoCircle,
-  FaCheckCircle,
-  FaClock,
-  FaUser,
-  FaBroadcastTower,
-} from "react-icons/fa";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Alert {
   id: string | number;
@@ -20,126 +13,183 @@ interface Alert {
   target_role?: string | null;
 }
 
-const ALERT_TYPE_META: Record<string, { icon: JSX.Element; color: string; bg: string; border: string; label: string }> = {
-  danger:  { icon: <FaExclamationTriangle />, color: "#EF5B5B", bg: "rgba(239,91,91,.08)",   border: "rgba(239,91,91,.2)",   label: "DANGER"  },
-  warning: { icon: <FaExclamationTriangle />, color: "#F5C842", bg: "rgba(245,200,66,.08)",  border: "rgba(245,200,66,.2)",  label: "WARNING" },
-  info:    { icon: <FaInfoCircle />,          color: "#5B8DEF", bg: "rgba(91,141,239,.08)",  border: "rgba(91,141,239,.2)",  label: "INFO"    },
-  success: { icon: <FaCheckCircle />,         color: "#2ECC8F", bg: "rgba(46,204,143,.08)",  border: "rgba(46,204,143,.2)",  label: "SUCCESS" },
+// ─── Meta ─────────────────────────────────────────────────────────────────────
+
+const ALERT_META: Record<string, { label: string; colorClass: string; icon: string }> = {
+  danger:  { label: "DANGER",  colorClass: "al-danger",  icon: "⚠" },
+  warning: { label: "WARNING", colorClass: "al-warning", icon: "⚠" },
+  info:    { label: "INFO",    colorClass: "al-info",    icon: "ℹ" },
+  success: { label: "SUCCESS", colorClass: "al-success", icon: "✓" },
 };
 
-const ALERTS_STYLE = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
 
-  .ral-root { font-family: 'IBM Plex Sans', sans-serif; color: #E8F0FF; }
+const Ico = {
+  Bell: ({ size = 14 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  ),
+  Warn: ({ size = 13 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  ),
+  Info: ({ size = 13 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  ),
+  Check: ({ size = 13 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  Clock: ({ size = 9 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  Broadcast: ({ size = 15 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+      <path d="M1 6l10.1 7.5L22 6"/><path d="M1 18h22"/><path d="M1 12h4"/><path d="M19 12h4"/><circle cx="12" cy="12" r="2"/>
+    </svg>
+  ),
+  X: ({ size = 11 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle" }}>
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+};
 
-  .ral-page-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
-  .ral-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: rgba(232,240,255,0.28); letter-spacing: .18em; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-  .ral-eyebrow::before { content: ''; width: 14px; height: 1px; background: #EF5B5B; display: block; }
-  .ral-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -.03em; }
-  .ral-subtitle { font-size: 10.5px; color: rgba(239,91,91,0.45); margin-top: 5px; font-family: 'IBM Plex Mono', monospace; }
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-  .ral-broadcast-btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 700;
-    padding: 8px 16px; border-radius: 7px; border: 1px solid rgba(239,91,91,0.35);
-    background: rgba(239,91,91,0.1); color: #EF5B5B; cursor: pointer;
-    transition: background .15s, border-color .15s; letter-spacing: .06em;
-  }
-  .ral-broadcast-btn:hover { background: rgba(239,91,91,0.2); border-color: rgba(239,91,91,0.5); }
+const STYLES = `
+:root {
+  --ink:   #06101C;
+  --s1:    #070F1B;
+  --s2:    #050D17;
+  --edge:  rgba(255,255,255,0.07);
+  --text:  #D8EAF8;
+  --muted: rgba(216,234,248,0.45);
+  --dim:   rgba(216,234,248,0.22);
+  --red:   #F33;
+  --amber: #F90;
+  --blue:  #4D9EFF;
+  --green: #00DC82;
+  --font-head: 'Bebas Neue','Arial Narrow',Arial,sans-serif;
+  --font-mono: 'IBM Plex Mono','Fira Mono',monospace;
+  --font-body: 'DM Sans',system-ui,sans-serif;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+@keyframes spin    { to{transform:rotate(360deg)} }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-  .ral-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 16px; }
-  .ral-stat {
-    background: rgba(4,15,30,0.88); border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px; padding: 13px; position: relative; overflow: hidden;
-    backdrop-filter: blur(8px);
-  }
-  .ral-stat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--s-color); }
-  .ral-stat-num { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--s-color); line-height: 1; margin-bottom: 4px; }
-  .ral-stat-label { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: rgba(232,240,255,0.3); letter-spacing: .1em; text-transform: uppercase; }
+.ra{font-family:var(--font-body);color:var(--text);min-height:100vh;background:var(--ink)}
 
-  .ral-layout { display: grid; grid-template-columns: 1fr 320px; gap: 12px; align-items: start; }
-  @media (max-width: 1050px) { .ral-layout { grid-template-columns: 1fr; } }
+/* ── Header ── */
+.ra-hd{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+.ra-eyebrow{font-family:var(--font-mono);font-size:10px;color:rgba(243,51,51,.6);letter-spacing:.28em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ra-eyebrow::before{content:'';display:block;width:20px;height:1px;background:var(--red);opacity:.5}
+.ra-title{font-family:var(--font-head);font-size:42px;font-weight:400;color:#fff;letter-spacing:.04em;line-height:1}
 
-  .ral-list { display: flex; flex-direction: column; gap: 8px; }
+/* ── Stats ── */
+.ra-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
+.ra-stat{background:rgba(6,17,32,.92);border:1px solid var(--edge);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.ra-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.ra-stat-icon{font-size:16px;margin-bottom:10px;opacity:.85}
+.ra-stat-num{font-family:var(--font-head);font-size:34px;line-height:1;margin-bottom:5px}
+.ra-stat-lbl{font-family:var(--font-mono);font-size:8.5px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 
-  .ral-card {
-    background: rgba(4,15,30,0.88); border: 1px solid var(--al-border);
-    border-left: 3px solid var(--al-color);
-    border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
-    backdrop-filter: blur(8px); animation: ralFadeUp .35s ease both;
-    transition: border-color .2s;
-  }
-  .ral-card:hover { filter: brightness(1.05); }
-  @keyframes ralFadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+/* Stat color variants */
+.ra-stat.sc-total  { }
+.ra-stat.sc-total  ::before{background:var(--text)}
+.ra-stat.sc-total  .ra-stat-icon,.ra-stat.sc-total  .ra-stat-num{color:var(--text)}
+.ra-stat.sc-danger ::before{background:var(--red)}
+.ra-stat.sc-danger .ra-stat-icon,.ra-stat.sc-danger .ra-stat-num{color:var(--red)}
+.ra-stat.sc-warning::before{background:var(--amber)}
+.ra-stat.sc-warning .ra-stat-icon,.ra-stat.sc-warning .ra-stat-num{color:var(--amber)}
+.ra-stat.sc-info   ::before{background:var(--blue)}
+.ra-stat.sc-info   .ra-stat-icon,.ra-stat.sc-info   .ra-stat-num{color:var(--blue)}
 
-  .ral-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-  .ral-card-type-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8px; font-weight: 700;
-    padding: 3px 9px; border-radius: 4px;
-    background: var(--al-bg); color: var(--al-color); border: 1px solid var(--al-border);
-    letter-spacing: .08em;
-  }
-  .ral-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 2px; }
-  .ral-card-msg { font-size: 12.5px; font-weight: 300; color: rgba(232,240,255,0.52); line-height: 1.6; }
-  .ral-card-footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .ral-card-meta {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: rgba(232,240,255,0.28);
-  }
+/* ── Layout ── */
+.ra-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media(max-width:1050px){.ra-layout{grid-template-columns:1fr}}
 
-  .ral-compose {
-    background: rgba(4,15,30,0.88); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 12px; padding: 16px; backdrop-filter: blur(8px);
-    display: flex; flex-direction: column; gap: 12px; position: sticky; top: 24px;
-  }
-  .ral-compose-title { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: rgba(232,240,255,0.38); letter-spacing: .14em; text-transform: uppercase; display: flex; align-items: center; gap: 7px; }
+/* ── Alert list ── */
+.ra-list{display:flex;flex-direction:column;gap:10px}
+.ra-empty{text-align:center;padding:52px;font-family:var(--font-mono);font-size:10.5px;color:var(--dim);letter-spacing:.12em}
 
-  .ral-field { display: flex; flex-direction: column; gap: 6px; }
-  .ral-label { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; color: rgba(232,240,255,0.32); letter-spacing: .08em; text-transform: uppercase; }
-  .ral-input {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 7px; padding: 9px 11px; font-size: 12.5px;
-    font-family: 'IBM Plex Sans', sans-serif; color: #E8F0FF; outline: none;
-    transition: border-color .2s; width: 100%;
-  }
-  .ral-input::placeholder { color: rgba(232,240,255,0.18); }
-  .ral-input:focus { border-color: rgba(239,91,91,0.35); }
-  .ral-textarea {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 7px; padding: 9px 11px; font-size: 12.5px;
-    font-family: 'IBM Plex Sans', sans-serif; font-weight: 300; color: #E8F0FF; outline: none;
-    transition: border-color .2s; width: 100%; resize: vertical; min-height: 80px; line-height: 1.6;
-  }
-  .ral-textarea::placeholder { color: rgba(232,240,255,0.18); }
-  .ral-textarea:focus { border-color: rgba(239,91,91,0.35); }
+/* ── Alert card ── */
+.ra-card{background:rgba(6,17,32,.92);border:1px solid;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,box-shadow .2s;animation:slideUp .3s ease both;position:relative;overflow:hidden}
+.ra-card::before{content:'';position:absolute;top:0;left:0;right:0;height:36px;background:linear-gradient(180deg,currentColor,transparent);opacity:.06;pointer-events:none}
+.ra-card:hover{box-shadow:0 8px 40px rgba(0,0,0,.4)}
 
-  .ral-type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .ral-type-opt {
-    display: flex; align-items: center; gap: 6px; padding: 8px 10px;
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 6px; cursor: pointer; font-size: 11.5px; font-family: 'IBM Plex Sans', sans-serif;
-    color: rgba(232,240,255,0.45); transition: all .15s;
-  }
-  .ral-type-opt.active { background: var(--to-bg); border-color: var(--to-border); color: var(--to-color); }
-  .ral-type-opt:hover:not(.active) { border-color: rgba(255,255,255,0.15); color: rgba(232,240,255,0.7); }
+/* Card color variants */
+.ra-card.al-danger {border-left:3px solid var(--red);  border-color:rgba(243,51,51,.22)}
+.ra-card.al-warning{border-left:3px solid var(--amber); border-color:rgba(255,153,0,.22)}
+.ra-card.al-info   {border-left:3px solid var(--blue);  border-color:rgba(77,158,255,.22)}
+.ra-card.al-success{border-left:3px solid var(--green); border-color:rgba(0,220,130,.22)}
+.ra-card.al-danger:hover {border-color:rgba(243,51,51,.5)}
+.ra-card.al-warning:hover{border-color:rgba(255,153,0,.5)}
+.ra-card.al-info:hover   {border-color:rgba(77,158,255,.5)}
+.ra-card.al-success:hover{border-color:rgba(0,220,130,.5)}
 
-  .ral-send-btn {
-    width: 100%; padding: 11px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800;
-    letter-spacing: .05em; text-transform: uppercase;
-    background: #EF5B5B; color: #fff; border: none; border-radius: 8px; cursor: pointer;
-    transition: background .15s, transform .15s; display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .ral-send-btn:hover:not(:disabled) { background: #f56d6d; transform: translateY(-1px); }
-  .ral-send-btn:disabled { opacity: .4; cursor: not-allowed; background: rgba(232,240,255,0.1); color: rgba(232,240,255,0.3); }
+.ra-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ra-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ra-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:8.5px;font-weight:700;padding:3px 10px;border-radius:5px;letter-spacing:.08em}
+.ra-badge.al-danger {background:rgba(243,51,51,.1); color:var(--red);  border:1px solid rgba(243,51,51,.25)}
+.ra-badge.al-warning{background:rgba(255,153,0,.1); color:var(--amber);border:1px solid rgba(255,153,0,.25)}
+.ra-badge.al-info   {background:rgba(77,158,255,.1);color:var(--blue); border:1px solid rgba(77,158,255,.25)}
+.ra-badge.al-success{background:rgba(0,220,130,.1); color:var(--green);border:1px solid rgba(0,220,130,.25)}
 
-  .ral-success-msg { text-align: center; padding: 10px; background: rgba(46,204,143,0.08); border: 1px solid rgba(46,204,143,0.2); border-radius: 7px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #2ECC8F; letter-spacing: .08em; }
+.ra-card-target{font-family:var(--font-mono);font-size:8.5px;font-weight:600;padding:2px 8px;border-radius:4px;background:rgba(77,158,255,.08);color:rgba(77,158,255,.7);border:1px solid rgba(77,158,255,.2)}
+.ra-card-title{font-size:15px;font-weight:700;color:#fff;line-height:1.3}
+.ra-card-msg{font-size:13px;font-weight:300;color:rgba(216,234,248,.5);line-height:1.65}
+.ra-card-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ra-card-meta{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9px;color:var(--dim)}
 
-  .ral-spinner { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); border-top-color: #EF5B5B; animation: ralSpin .7s linear infinite; }
-  @keyframes ralSpin { to { transform: rotate(360deg); } }
-  .ral-empty { text-align: center; padding: 40px 0; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: rgba(232,240,255,0.18); letter-spacing: .1em; }
+/* ── Compose panel ── */
+.ra-compose{background:rgba(6,17,32,.95);border:1px solid var(--edge);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:16px;position:sticky;top:24px}
+.ra-compose-hd{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--edge)}
+.ra-compose-icon{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:rgba(243,51,51,.1);border:1px solid rgba(243,51,51,.2);display:flex;align-items:center;justify-content:center;color:var(--red)}
+.ra-compose-title{font-size:14px;font-weight:700;color:#fff}
+.ra-compose-sub{font-family:var(--font-mono);font-size:8.5px;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:.1em}
+
+.ra-field{display:flex;flex-direction:column;gap:8px}
+.ra-label{font-family:var(--font-mono);font-size:9px;font-weight:600;color:rgba(216,234,248,.32);letter-spacing:.1em;text-transform:uppercase}
+.ra-input{background:rgba(3,11,21,.8);border:1px solid var(--edge);border-radius:9px;padding:11px 13px;font-family:var(--font-body);font-size:13px;color:var(--text);outline:none;transition:border-color .2s;width:100%}
+.ra-input::placeholder{color:var(--dim)}
+.ra-input:focus{border-color:rgba(243,51,51,.3)}
+.ra-textarea{background:rgba(3,11,21,.8);border:1px solid var(--edge);border-radius:9px;padding:11px 13px;font-family:var(--font-body);font-size:13px;font-weight:300;color:var(--text);outline:none;transition:border-color .2s;width:100%;resize:vertical;min-height:90px;line-height:1.65}
+.ra-textarea::placeholder{color:var(--dim)}
+.ra-textarea:focus{border-color:rgba(243,51,51,.3)}
+
+/* Type selector */
+.ra-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ra-type-opt{display:flex;align-items:center;gap:7px;padding:9px 11px;background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);transition:all .15s}
+.ra-type-opt:hover:not(.active){border-color:rgba(255,255,255,.15);color:var(--text)}
+.ra-type-opt.active.al-danger {background:rgba(243,51,51,.1); border-color:rgba(243,51,51,.3); color:var(--red)}
+.ra-type-opt.active.al-warning{background:rgba(255,153,0,.1); border-color:rgba(255,153,0,.3); color:var(--amber)}
+.ra-type-opt.active.al-info   {background:rgba(77,158,255,.1);border-color:rgba(77,158,255,.3);color:var(--blue)}
+.ra-type-opt.active.al-success{background:rgba(0,220,130,.1); border-color:rgba(0,220,130,.3); color:var(--green)}
+.ra-type-icon{font-size:13px;flex-shrink:0}
+
+/* Success banner */
+.ra-success{text-align:center;padding:10px 14px;background:rgba(0,220,130,.07);border:1px solid rgba(0,220,130,.2);border-radius:8px;font-family:var(--font-mono);font-size:9.5px;color:var(--green);letter-spacing:.08em;display:flex;align-items:center;justify-content:center;gap:7px}
+
+/* Send button */
+.ra-send{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-body);font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.ra-send:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
+.ra-send:active:not(:disabled){transform:none}
+.ra-send:disabled{opacity:.4;cursor:not-allowed;background:rgba(216,234,248,.1);color:rgba(216,234,248,.3)}
+
+/* Spinner */
+.ra-spinner{display:inline-block;width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:var(--red);animation:spin .7s linear infinite}
+.ra-spinner-sm{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:#fff;animation:spin .7s linear infinite}
 `;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatRelative(ts: string) {
   const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -149,13 +199,27 @@ function formatRelative(ts: string) {
   return new Date(ts).toLocaleDateString();
 }
 
+function cls(...args: (string | false | undefined | null)[]): string {
+  return args.filter(Boolean).join(" ");
+}
+
+// ─── Alert type icon helper ───────────────────────────────────────────────────
+
+function AlertTypeIcon({ type, size = 13 }: { type: string; size?: number }) {
+  if (type === "info")    return <Ico.Info size={size} />;
+  if (type === "success") return <Ico.Check size={size} />;
+  return <Ico.Warn size={size} />;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function ResponderAlertsPage() {
-  const [alerts, setAlerts]       = useState<Alert[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [sending, setSending]     = useState(false);
-  const [sent, setSent]           = useState(false);
-  const [title, setTitle]         = useState("");
-  const [message, setMessage]     = useState("");
+  const [alerts,    setAlerts]    = useState<Alert[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [sending,   setSending]   = useState(false);
+  const [sent,      setSent]      = useState(false);
+  const [title,     setTitle]     = useState("");
+  const [message,   setMessage]   = useState("");
   const [alertType, setAlertType] = useState("warning");
 
   const loadAlerts = async () => {
@@ -169,7 +233,6 @@ export default function ResponderAlertsPage() {
 
   useEffect(() => {
     loadAlerts();
-    // Channel name is unique so it doesn't clash with citizen-alerts-live
     const ch = supabase
       .channel("responder-alerts-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "alerts" }, loadAlerts)
@@ -193,7 +256,7 @@ export default function ResponderAlertsPage() {
     setAlertType("warning");
     setSending(false);
     setSent(true);
-    setTimeout(() => setSent(false), 3000);
+    setTimeout(() => setSent(false), 3500);
     await loadAlerts();
   };
 
@@ -204,70 +267,76 @@ export default function ResponderAlertsPage() {
     info:    alerts.filter((a) => a.type === "info").length,
   };
 
-  const alertTypeOptions = ["danger", "warning", "info", "success"];
+  const statCards = [
+    { label: "Total Alerts", value: counts.total,   colorClass: "sc-total",   icon: <Ico.Bell size={16} /> },
+    { label: "Danger",       value: counts.danger,  colorClass: "sc-danger",  icon: <Ico.Warn size={16} /> },
+    { label: "Warning",      value: counts.warning, colorClass: "sc-warning", icon: <Ico.Warn size={16} /> },
+    { label: "Info",         value: counts.info,    colorClass: "sc-info",    icon: <Ico.Info size={16} /> },
+  ];
+
+  const typeOptions = ["danger", "warning", "info", "success"];
 
   return (
     <>
-      <style>{ALERTS_STYLE}</style>
-      <div className="ral-root">
-        <div className="ral-page-header">
+      <style>{STYLES}</style>
+      <div className="ra">
+
+        {/* Header */}
+        <div className="ra-hd">
           <div>
-            <div className="ral-eyebrow">Field Operations</div>
-            <div className="ral-title">Alerts</div>
-            <div className="ral-subtitle">BROADCAST & MONITOR ALERTS</div>
+            <div className="ra-eyebrow">Field Operations</div>
+            <div className="ra-title">ALERTS</div>
           </div>
-          {loading && <div className="ral-spinner" />}
+          {loading && <div className="ra-spinner" />}
         </div>
 
         {/* Stats */}
-        <div className="ral-stats">
-          {[
-            { label: "Total Alerts", value: counts.total,   color: "#E8F0FF" },
-            { label: "Danger",       value: counts.danger,  color: "#EF5B5B" },
-            { label: "Warning",      value: counts.warning, color: "#F5C842" },
-            { label: "Info",         value: counts.info,    color: "#5B8DEF" },
-          ].map((s) => (
-            <div key={s.label} className="ral-stat" style={{ "--s-color": s.color } as React.CSSProperties}>
-              <div className="ral-stat-num">{loading ? "—" : s.value}</div>
-              <div className="ral-stat-label">{s.label}</div>
+        <div className="ra-stats">
+          {statCards.map((s) => (
+            <div key={s.label} className={cls("ra-stat", s.colorClass)}>
+              <div className="ra-stat-icon">{s.icon}</div>
+              <div className="ra-stat-num">{loading ? "—" : s.value}</div>
+              <div className="ra-stat-lbl">{s.label}</div>
             </div>
           ))}
         </div>
 
-        <div className="ral-layout">
+        {/* Layout */}
+        <div className="ra-layout">
+
           {/* Alert feed */}
-          <div className="ral-list">
+          <div className="ra-list">
             {loading ? (
-              <div className="ral-empty"><div className="ral-spinner" /></div>
+              <div className="ra-empty">
+                <div className="ra-spinner" style={{ margin: "0 auto" }} />
+              </div>
             ) : alerts.length === 0 ? (
-              <div className="ral-empty">NO ALERTS YET</div>
+              <div className="ra-empty">NO ALERTS YET</div>
             ) : (
               alerts.map((a) => {
-                const am = ALERT_TYPE_META[a.type] ?? ALERT_TYPE_META.info;
+                const am = ALERT_META[a.type] ?? ALERT_META.info;
                 return (
-                  <div
-                    key={String(a.id)}
-                    className="ral-card"
-                    style={{
-                      "--al-color":  am.color,
-                      "--al-bg":     am.bg,
-                      "--al-border": am.border,
-                    } as React.CSSProperties}
-                  >
-                    <div className="ral-card-header">
-                      <div>
-                        <span className="ral-card-type-badge">
-                          {am.icon} {am.label}
-                        </span>
-                        <div className="ral-card-title" style={{ marginTop: 6 }}>{a.title}</div>
+                  <div key={String(a.id)} className={cls("ra-card", am.colorClass)}>
+                    <div className="ra-card-top">
+                      <div style={{ flex: 1 }}>
+                        <div className="ra-badge-row">
+                          <span className={cls("ra-badge", am.colorClass)}>
+                            <AlertTypeIcon type={a.type} size={9} />
+                            {am.label}
+                          </span>
+                          {a.target_role && (
+                            <span className="ra-card-target">→ {a.target_role.toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="ra-card-title">{a.title}</div>
                       </div>
                     </div>
-                    <div className="ral-card-msg">{a.message}</div>
-                    <div className="ral-card-footer">
-                      <span className="ral-card-meta"><FaClock size={8} />{formatRelative(a.created_at)}</span>
-                      {a.target_role && (
-                        <span className="ral-card-meta"><FaUser size={8} />→ {a.target_role.toUpperCase()}</span>
-                      )}
+                    <div className="ra-card-msg">{a.message}</div>
+                    <div className="ra-card-footer">
+                      <span className="ra-card-meta">
+                        <Ico.Clock size={9} />
+                        {formatRelative(a.created_at)}
+                      </span>
                     </div>
                   </div>
                 );
@@ -276,66 +345,78 @@ export default function ResponderAlertsPage() {
           </div>
 
           {/* Compose panel */}
-          <div className="ral-compose">
-            <div className="ral-compose-title">
-              <FaBroadcastTower size={12} /> Broadcast Alert
+          <div className="ra-compose">
+            <div className="ra-compose-hd">
+              <div className="ra-compose-icon"><Ico.Broadcast size={15} /></div>
+              <div>
+                <div className="ra-compose-title">Broadcast Alert</div>
+                <div className="ra-compose-sub">Send to citizens</div>
+              </div>
             </div>
 
-            <div className="ral-field">
-              <label className="ral-label">Alert Type</label>
-              <div className="ral-type-row">
-                {alertTypeOptions.map((t) => {
-                  const am = ALERT_TYPE_META[t];
+            {/* Type selector */}
+            <div className="ra-field">
+              <span className="ra-label">Alert Type</span>
+              <div className="ra-type-grid">
+                {typeOptions.map((t) => {
+                  const am = ALERT_META[t];
                   return (
                     <div
                       key={t}
-                      className={`ral-type-opt${alertType === t ? " active" : ""}`}
-                      style={{
-                        "--to-color":  am.color,
-                        "--to-bg":     am.bg,
-                        "--to-border": am.border,
-                      } as React.CSSProperties}
+                      className={cls("ra-type-opt", am.colorClass, alertType === t && "active")}
                       onClick={() => setAlertType(t)}
                     >
-                      {am.icon}
-                      <span style={{ fontSize: 11 }}>{am.label}</span>
+                      <span className="ra-type-icon">
+                        <AlertTypeIcon type={t} size={13} />
+                      </span>
+                      <span>{am.label}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div className="ral-field">
-              <label className="ral-label">Title</label>
+            {/* Title */}
+            <div className="ra-field">
+              <label className="ra-label">Title</label>
               <input
-                className="ral-input"
+                className="ra-input"
                 placeholder="e.g. Road closed — Rizal Blvd"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
 
-            <div className="ral-field">
-              <label className="ral-label">Message</label>
+            {/* Message */}
+            <div className="ra-field">
+              <label className="ra-label">Message</label>
               <textarea
-                className="ral-textarea"
+                className="ra-textarea"
                 placeholder="Describe the situation and any public safety instructions…"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
             </div>
 
+            {/* Success banner */}
             {sent && (
-              <div className="ral-success-msg">✓ ALERT BROADCAST SUCCESSFULLY</div>
+              <div className="ra-success">
+                <Ico.Check size={12} />
+                ALERT BROADCAST SUCCESSFULLY
+              </div>
             )}
 
+            {/* Send button */}
             <button
-              className="ral-send-btn"
+              className="ra-send"
               disabled={!title.trim() || !message.trim() || sending}
               onClick={handleSend}
             >
-              <FaBell size={13} />
-              {sending ? "Sending…" : "Broadcast Alert"}
+              {sending ? (
+                <><span className="ra-spinner-sm" /> Sending…</>
+              ) : (
+                <><Ico.Bell size={14} /> Broadcast Alert</>
+              )}
             </button>
           </div>
         </div>

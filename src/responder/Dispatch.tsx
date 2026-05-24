@@ -1,17 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../js/supabase";
-import {
-  FaMapMarkerAlt,
-  FaFilter,
-  FaUser,
-  FaClock,
-  FaPhone,
-  FaCheckCircle,
-  FaRoute,
-  FaFileAlt,
-  FaTimes,
-  FaLightbulb,
-} from "react-icons/fa";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Report {
   id: string | number;
@@ -27,362 +17,655 @@ interface Report {
   responder_id: string | null;
 }
 
-interface SummaryDraft {
-  report: Report;
-  actionTaken: string;
-  resolution: string;
-  notes: string;
-}
+// ─── Meta ─────────────────────────────────────────────────────────────────────
 
-const RESOLUTION_OPTIONS = [
-  { value: "fully_resolved", label: "✅ Fully Resolved", color: "#2ECC8F" },
-  { value: "needs_followup", label: "🔄 Resolved but needs follow-up", color: "#F5C842" },
-  { value: "forwarded", label: "📋 Forwarded to appropriate department/agency", color: "#5B8DEF" },
-  { value: "not_resolved", label: "⚠️ Not yet resolved", color: "#EF5B5B" },
-];
-
-const ACTION_TEMPLATES = [
-  {
-    label: "🚒 Dispatch & Scene",
-    text: "Responded to the scene immediately upon dispatch. Conducted initial assessment of the situation. Coordinated with on-site personnel to ensure safety protocols were followed.",
-  },
-  {
-    label: "🏥 Medical Response",
-    text: "Provided first aid and emergency medical assistance to affected individuals. Coordinated with medical teams for transport to the nearest health facility. Scene was secured and bystanders were assisted.",
-  },
-  {
-    label: "🚨 Crime/Security",
-    text: "Secured the perimeter and gathered witness accounts. Documented evidence and reported findings to the appropriate authorities. Ensured the safety of all individuals in the vicinity.",
-  },
-];
-
-const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
-  fire: { icon: "🔥", color: "#EF5B5B", label: "Fire" },
-  accident: { icon: "🚗", color: "#F5C842", label: "Accident" },
-  flood: { icon: "🌊", color: "#5B8DEF", label: "Flood" },
-  crime: { icon: "🚨", color: "#EF5B9E", label: "Crime" },
-  medical: { icon: "🏥", color: "#2ECC8F", label: "Medical" },
-  other: { icon: "⚠️", color: "#B0B8CC", label: "Other" },
+const TYPE_META: Record<string, { icon: string; label: string; colorClass: string }> = {
+  fire:     { icon: "🔥", label: "Fire",     colorClass: "type-fire"     },
+  accident: { icon: "🚗", label: "Accident", colorClass: "type-accident" },
+  flood:    { icon: "🌊", label: "Flood",    colorClass: "type-flood"    },
+  crime:    { icon: "🚨", label: "Crime",    colorClass: "type-crime"    },
+  medical:  { icon: "🏥", label: "Medical",  colorClass: "type-medical"  },
+  other:    { icon: "⚠️", label: "Other",    colorClass: "type-other"    },
 };
 
-const STATUS_META: Record<
-  string,
-  { label: string; color: string; bg: string; border: string }
-> = {
-  pending: {
-    label: "PENDING",
-    color: "#EF5B5B",
-    bg: "rgba(239,91,91,.1)",
-    border: "rgba(239,91,91,.25)",
-  },
-  "in-progress": {
-    label: "IN PROG",
-    color: "#F5C842",
-    bg: "rgba(245,200,66,.1)",
-    border: "rgba(245,200,66,.25)",
-  },
-  resolved: {
-    label: "RESOLVED",
-    color: "#2ECC8F",
-    bg: "rgba(46,204,143,.1)",
-    border: "rgba(46,204,143,.25)",
-  },
+const STATUS_META: Record<string, { label: string; colorClass: string }> = {
+  pending:       { label: "Pending",     colorClass: "status-pending"     },
+  "in-progress": { label: "In Progress", colorClass: "status-in-progress" },
+  resolved:      { label: "Resolved",    colorClass: "status-resolved"    },
 };
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+:root {
+  --ink:   #07101C;
+  --s1:    #080F1B;
+  --s2:    #060C16;
+  --edge:  rgba(255,255,255,0.07);
+  --text:  #D8EAF8;
+  --muted: rgba(216,234,248,0.45);
+  --dim:   rgba(216,234,248,0.22);
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
+  --red:   #F44;
+  --amber: #F90;
+  --blue:  #3B9EFF;
+  --green: #00DC82;
+  --pink:  #FF3FA4;
+  --slate: #8899BB;
+
+  --font-head: 'Bebas Neue', 'Arial Narrow', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Fira Mono', monospace;
+  --font-body: 'DM Sans', system-ui, sans-serif;
 }
 
-.dp-root{
-  font-family:'IBM Plex Sans',sans-serif;
-  color:#E8F0FF;
+@keyframes pip {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%     { opacity:0.5; transform:scale(1.5); }
+}
+@keyframes spin {
+  to { transform:rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(4px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 
-.dp-page-header{
-  margin-bottom:20px;
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  flex-wrap:wrap;
-  gap:12px;
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+.dp {
+  font-family: var(--font-body);
+  color: var(--text);
+  min-height: 100vh;
+  background: var(--ink);
 }
 
-.dp-eyebrow{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:9px;
-  color:rgba(232,240,255,.3);
-  letter-spacing:.18em;
-  text-transform:uppercase;
-  margin-bottom:6px;
+/* ── Header ── */
+.dp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.dp-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(244,68,68,0.6);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dp-eyebrow::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 1px;
+  background: var(--red);
+  opacity: 0.5;
+}
+.dp-title {
+  font-family: var(--font-head);
+  font-size: 42px;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.dp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.dp-live-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--red);
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(244,68,68,0.25);
+  background: rgba(244,68,68,0.06);
+}
+.dp-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pip 1.6s ease infinite;
 }
 
-.dp-title{
-  font-family:'Syne', sans-serif;
-  font-size:26px;
-  font-weight:800;
-  color:#fff;
+/* ── Filter bar ── */
+.dp-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--s1);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.dp-filter-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.dp-filter-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--edge);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.dp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dp-chip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--edge);
+  background: rgba(255,255,255,0.02);
+  color: var(--muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  letter-spacing: 0.04em;
+}
+.dp-chip:hover {
+  border-color: rgba(255,255,255,0.15);
+  color: var(--text);
+}
+.dp-chip.active {
+  background: rgba(244,68,68,0.1);
+  border-color: rgba(244,68,68,0.35);
+  color: var(--red);
+}
+.dp-chip-count {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 8px;
+  opacity: 0.55;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  padding: 1px 5px;
 }
 
-.dp-subtitle{
-  font-size:10px;
-  color:rgba(239,91,91,.5);
-  margin-top:5px;
-  font-family:'IBM Plex Mono', monospace;
+/* ── Layout ── */
+.dp-body {
+  display: grid;
+  grid-template-columns: 1fr 370px;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 1060px) {
+  .dp-body { grid-template-columns: 1fr; }
 }
 
-.dp-layout{
-  display:grid;
-  grid-template-columns:1fr 380px;
-  gap:12px;
+/* ── Panels ── */
+.dp-panel {
+  background: var(--s1);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.dp-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(244,68,68,0.5), rgba(59,158,255,0.15), transparent 55%);
+  pointer-events: none;
+  z-index: 1;
+}
+.dp-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--edge);
+  background: rgba(255,255,255,0.015);
+}
+.dp-panel-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dp-count-pill {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(244,68,68,0.08);
+  border: 1px solid rgba(244,68,68,0.22);
+  color: var(--red);
+  letter-spacing: 0.06em;
 }
 
-@media(max-width:1100px){
-  .dp-layout{
-    grid-template-columns:1fr;
-  }
+/* ── Map ── */
+.dp-map-wrap { width: 100%; height: 540px; position: relative; }
+.dp-map-wrap iframe { width:100%; height:100%; border:0; display:block; }
+.dp-map-overlay {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+.dp-map-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: rgba(7,16,28,0.9);
+  border: 1px solid var(--edge);
+  color: var(--muted);
+  backdrop-filter: blur(10px);
+}
+.dp-map-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 540px;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.14em;
 }
 
-.dp-map-panel,
-.dp-list-panel,
-.dp-filter-bar{
-  background:rgba(4,15,30,.9);
-  border:1px solid rgba(255,255,255,.07);
-  border-radius:12px;
-  overflow:hidden;
+/* ── Queue ── */
+.dp-queue {
+  max-height: 576px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244,68,68,0.15) transparent;
+}
+.dp-queue::-webkit-scrollbar { width: 3px; }
+.dp-queue::-webkit-scrollbar-thumb {
+  background: rgba(244,68,68,0.15);
+  border-radius: 2px;
 }
 
-.dp-map-header,
-.dp-list-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 16px;
-  border-bottom:1px solid rgba(255,255,255,.06);
+/* ── Cards ── */
+.dp-card {
+  padding: 13px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  position: relative;
+  transition: background 0.14s;
+  animation: fadeIn 0.2s ease both;
+}
+.dp-card::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  transform: scaleY(0);
+  transition: transform 0.18s cubic-bezier(0.4,0,0.2,1);
+  transform-origin: center;
+}
+.dp-card:hover { background: rgba(255,255,255,0.02); }
+.dp-card:hover::after,
+.dp-card.selected::after { transform: scaleY(1); }
+.dp-card.selected { background: rgba(255,255,255,0.025); }
+.dp-card:last-child { border-bottom: none; }
+
+/* Card accent colors by type */
+.dp-card.type-fire::after    { background: #F44; }
+.dp-card.type-accident::after { background: #F90; }
+.dp-card.type-flood::after   { background: #3B9EFF; }
+.dp-card.type-crime::after   { background: #FF3FA4; }
+.dp-card.type-medical::after { background: #00DC82; }
+.dp-card.type-other::after   { background: #8899BB; }
+
+.dp-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+  gap: 8px;
+}
+.dp-card-type {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+.dp-card-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
-.dp-map-title,
-.dp-list-title{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:9px;
-  color:rgba(232,240,255,.4);
-  letter-spacing:.14em;
-  text-transform:uppercase;
+/* Type-specific icon bg */
+.dp-card.type-fire     .dp-card-icon { background: rgba(244,68,68,0.12); }
+.dp-card.type-accident .dp-card-icon { background: rgba(255,153,0,0.12); }
+.dp-card.type-flood    .dp-card-icon { background: rgba(59,158,255,0.12); }
+.dp-card.type-crime    .dp-card-icon { background: rgba(255,63,164,0.12); }
+.dp-card.type-medical  .dp-card-icon { background: rgba(0,220,130,0.12); }
+.dp-card.type-other    .dp-card-icon { background: rgba(136,153,187,0.12); }
+
+/* Type-specific label color */
+.dp-card.type-fire     .dp-card-type-label { color: #F44; }
+.dp-card.type-accident .dp-card-type-label { color: #F90; }
+.dp-card.type-flood    .dp-card-type-label { color: #3B9EFF; }
+.dp-card.type-crime    .dp-card-type-label { color: #FF3FA4; }
+.dp-card.type-medical  .dp-card-type-label { color: #00DC82; }
+.dp-card.type-other    .dp-card-type-label { color: #8899BB; }
+
+/* ── Status badges ── */
+.dp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.07);
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+.dp-status-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+.dp-status.status-pending {
+  background: rgba(244,68,68,0.1);
+  color: #F44;
+}
+.dp-status.status-pending .dp-status-dot { background: #F44; }
+.dp-status.status-in-progress {
+  background: rgba(255,153,0,0.1);
+  color: #F90;
+}
+.dp-status.status-in-progress .dp-status-dot { background: #F90; }
+.dp-status.status-resolved {
+  background: rgba(0,220,130,0.1);
+  color: #00DC82;
+}
+.dp-status.status-resolved .dp-status-dot { background: #00DC82; }
+
+/* ── Meta & tags ── */
+.dp-card-addr {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dp-card-desc {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.6;
+  color: rgba(216,234,248,0.3);
+  font-style: italic;
+  border-left: 2px solid rgba(255,255,255,0.06);
+  padding-left: 9px;
+  margin: 6px 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.dp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--edge);
+  background: rgba(255,255,255,0.02);
+  color: var(--muted);
+}
+.dp-tag-tel {
+  color: #00DC82;
+  border-color: rgba(0,220,130,0.2);
+  background: rgba(0,220,130,0.04);
+  text-decoration: none;
+  cursor: pointer;
+}
+.dp-tag-tel:hover { background: rgba(0,220,130,0.1); }
+
+/* ── Action buttons ── */
+.dp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.dp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 6px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.12s, border-color 0.15s;
+  white-space: nowrap;
+}
+.dp-btn:hover { transform: translateY(-1px); }
+.dp-btn:active { transform: translateY(0); }
+.dp-btn-claim {
+  background: rgba(244,68,68,0.08);
+  border-color: rgba(244,68,68,0.3);
+  color: var(--red);
+}
+.dp-btn-claim:hover {
+  background: rgba(244,68,68,0.16);
+  border-color: rgba(244,68,68,0.5);
+}
+.dp-btn-resolve {
+  background: rgba(0,220,130,0.07);
+  border-color: rgba(0,220,130,0.28);
+  color: #00DC82;
+}
+.dp-btn-resolve:hover {
+  background: rgba(0,220,130,0.14);
+  border-color: rgba(0,220,130,0.45);
+}
+.dp-btn-nav {
+  background: rgba(59,158,255,0.07);
+  border-color: rgba(59,158,255,0.26);
+  color: var(--blue);
+}
+.dp-btn-nav:hover {
+  background: rgba(59,158,255,0.14);
+  border-color: rgba(59,158,255,0.44);
 }
 
-.dp-map-tag,
-.dp-list-count{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:8px;
-  color:#EF5B5B;
-  border:1px solid rgba(239,91,91,.2);
-  border-radius:4px;
-  padding:3px 8px;
+/* ── Utility ── */
+.dp-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.07);
+  border-top-color: var(--red);
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
-
-.dp-filter-bar{
-  padding:12px 14px;
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:12px;
+.dp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.14em;
+  text-align: center;
 }
+.dp-empty-icon { font-size: 26px; opacity: 0.12; }
 
-.dp-filter-label{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:9px;
-  color:rgba(232,240,255,.35);
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-
-.dp-filter-chip{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:8px;
-  padding:5px 10px;
-  border-radius:5px;
-  border:1px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.03);
-  color:rgba(232,240,255,.5);
-  cursor:pointer;
-}
-
-.dp-filter-chip.active{
-  background:rgba(239,91,91,.12);
-  border-color:rgba(239,91,91,.3);
-  color:#EF5B5B;
-}
-
-.dp-list-body{
-  max-height:540px;
-  overflow-y:auto;
-}
-
-.dp-incident-row{
-  padding:14px 16px;
-  border-bottom:1px solid rgba(255,255,255,.05);
-  cursor:pointer;
-}
-
-.dp-incident-row:hover{
-  background:rgba(255,255,255,.03);
-}
-
-.dp-inc-top{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:7px;
-}
-
-.dp-inc-type-label{
-  display:flex;
-  gap:6px;
-  font-size:13px;
-  font-weight:600;
-}
-
-.dp-inc-badge{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:7px;
-  padding:3px 8px;
-  border-radius:4px;
-}
-
-.dp-inc-address{
-  font-family:'IBM Plex Mono', monospace;
-  font-size:9px;
-  color:rgba(232,240,255,.35);
-  margin-bottom:8px;
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-
-.dp-inc-footer{
-  display:flex;
-  flex-wrap:wrap;
-  gap:7px;
-}
-
-.dp-inc-meta-chip{
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-  font-family:'IBM Plex Mono', monospace;
-  font-size:8px;
-  padding:4px 8px;
-  border-radius:5px;
-  border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.03);
-  color:rgba(232,240,255,.45);
-}
-
-.dp-nav-btn,
-.dp-claim-btn,
-.dp-resolve-btn{
-  text-decoration:none;
-  border:none;
-  cursor:pointer;
-  padding:5px 12px;
-  border-radius:5px;
-  font-family:'IBM Plex Mono', monospace;
-  font-size:8px;
-  display:flex;
-  align-items:center;
-  gap:5px;
-}
-
-.dp-nav-btn{
-  background:rgba(91,141,239,.08);
-  border:1px solid rgba(91,141,239,.25);
-  color:#5B8DEF;
-}
-
-.dp-claim-btn{
-  background:rgba(239,91,91,.08);
-  border:1px solid rgba(239,91,91,.3);
-  color:#EF5B5B;
-}
-
-.dp-resolve-btn{
-  background:rgba(46,204,143,.08);
-  border:1px solid rgba(46,204,143,.3);
-  color:#2ECC8F;
-}
-
-.dp-spinner{
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  border:2px solid rgba(255,255,255,.1);
-  border-top-color:#EF5B5B;
-  animation:spin .7s linear infinite;
-}
-
-@keyframes spin{
-  to{
-    transform:rotate(360deg);
-  }
-}
-
-.dp-empty{
-  padding:40px;
-  text-align:center;
-  color:rgba(232,240,255,.3);
-  font-family:'IBM Plex Mono', monospace;
+/* SVG icon helpers */
+.dp-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 `;
 
-function formatRelative(ts: string) {
-  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
+// ─── SVG Icons (no external deps needed) ─────────────────────────────────────
 
+const Icon = {
+  MapPin: () => (
+    <svg className="dp-icon" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  ),
+  Clock: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  ),
+  User: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  ),
+  Phone: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+  ),
+  Bolt: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  ),
+  Check: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  ),
+  Route: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="6" cy="19" r="3"/><path d="M9 19h8.5c.4 0 .9-.2 1.2-.5l2.7-2.7c.3-.3.5-.7.6-1.1V5"/><path d="M18 5a3 3 0 0 0-3-3H9L6 5"/><circle cx="18" cy="5" r="3"/>
+    </svg>
+  ),
+  File: () => (
+    <svg className="dp-icon" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>
+  ),
+  Filter: () => (
+    <svg className="dp-icon" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+    </svg>
+  ),
+  Layers: () => (
+    <svg className="dp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+    </svg>
+  ),
+  Radar: () => (
+    <svg className="dp-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6a6 6 0 0 0 0 12"/><path d="M12 10a2 2 0 0 0 0 4"/><line x1="12" y1="2" x2="12" y2="12"/>
+    </svg>
+  ),
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatRelative(ts: string): string {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-
   return new Date(ts).toLocaleDateString();
 }
 
-function parseCoords(loc: string | null): [number, number] | null {
-  if (!loc) return null;
-
+function hasCoords(loc: string | null): boolean {
+  if (!loc) return false;
   const parts = loc.split(",").map((s) => parseFloat(s.trim()));
-
-  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-    return [parts[0], parts[1]];
-  }
-
-  return null;
+  return parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]);
 }
 
+function cls(...args: (string | false | undefined | null)[]): string {
+  return args.filter(Boolean).join(" ");
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function Dispatch() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [responderId, setResponderId] = useState("");
+  const [reports, setReports]           = useState<Report[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [responderId, setResponderId]   = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterType, setFilterType] = useState("all");
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filterType,   setFilterType]   = useState("all");
+  const [selectedId,   setSelectedId]   = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        setResponderId(user.id);
-      }
-    };
-
-    init();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setResponderId(user.id);
+    });
   }, []);
 
   const loadReports = async () => {
@@ -390,319 +673,290 @@ export default function Dispatch() {
       .from("reports")
       .select("*")
       .order("created_at", { ascending: false });
-
     setReports(data ?? []);
     setLoading(false);
   };
 
   useEffect(() => {
     loadReports();
-
     const ch = supabase
       .channel("dispatch-reports")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "reports",
-        },
-        loadReports
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "reports" }, loadReports)
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    return () => { supabase.removeChannel(ch); };
   }, []);
 
-  const claimReport = async (id: string | number) => {
+  const claimReport = async (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
     await supabase
       .from("reports")
-      .update({
-        responder_id: responderId,
-        status: "in-progress",
-      })
+      .update({ responder_id: responderId, status: "in-progress" })
       .eq("id", id);
+    loadReports();
+  };
 
-    await loadReports();
+  const resolveReport = async (id: string | number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await supabase
+      .from("reports")
+      .update({ status: "resolved" })
+      .eq("id", id);
+    loadReports();
   };
 
   const filtered = reports.filter((r) => {
-    const statusOk =
-      filterStatus === "all" || r.status === filterStatus;
-
-    const typeOk =
-      filterType === "all" || r.type === filterType;
-
+    const statusOk = filterStatus === "all" || r.status === filterStatus;
+    const typeOk   = filterType   === "all" || r.type   === filterType;
     return statusOk && typeOk;
   });
 
-  const statusFilters = ["all", "pending", "in-progress", "resolved"];
+  const countByStatus = (s: string) =>
+    s === "all" ? reports.length : reports.filter((r) => r.status === s).length;
+  const countByType = (t: string) =>
+    t === "all" ? reports.length : reports.filter((r) => r.type === t).length;
 
-  const typeFilters = [
-    "all",
-    "fire",
-    "accident",
-    "flood",
-    "crime",
-    "medical",
-    "other",
-  ];
+  const selectedReport = selectedId
+    ? reports.find((r) => String(r.id) === selectedId) ?? null
+    : null;
+
+  const mapSrc = selectedReport?.location
+    ? `https://www.google.com/maps?q=${encodeURIComponent(selectedReport.location)}&z=16&output=embed`
+    : "https://www.google.com/maps?q=Dumaguete+City&z=13&output=embed";
+
+  const statusFilters = ["all", "pending", "in-progress", "resolved"];
+  const typeFilters   = ["all", "fire", "accident", "flood", "crime", "medical", "other"];
 
   return (
     <>
       <style>{STYLES}</style>
+      <div className="dp">
 
-      <div className="dp-root">
-        <div className="dp-page-header">
+        {/* Header */}
+        <div className="dp-header">
           <div>
             <div className="dp-eyebrow">Field Operations</div>
-
-            <div className="dp-title">
-              Dispatch Center
-            </div>
-
-            <div className="dp-subtitle">
-              LIVE GOOGLE MAP — DUMAGUETE CITY
+            <div className="dp-title">DISPATCH CENTER</div>
+          </div>
+          <div className="dp-header-right">
+            {loading && <div className="dp-spinner" />}
+            <div className="dp-live-badge">
+              <span className="dp-live-dot" />
+              LIVE FEED
             </div>
           </div>
-
-          {loading && <div className="dp-spinner" />}
         </div>
 
-        {/* FILTERS */}
-        <div className="dp-filter-bar">
+        {/* Filter bar */}
+        <div className="dp-filters">
           <span className="dp-filter-label">
-            <FaFilter size={9} />
+            <Icon.Filter />
             Status
           </span>
-
-          {statusFilters.map((s) => (
-            <button
-              key={s}
-              className={`dp-filter-chip ${
-                filterStatus === s ? "active" : ""
-              }`}
-              onClick={() => setFilterStatus(s)}
-            >
-              {s.toUpperCase()}
-            </button>
-          ))}
-
-          <span
-            className="dp-filter-label"
-            style={{ marginLeft: 8 }}
-          >
-            Type
-          </span>
-
-          {typeFilters.map((t) => (
-            <button
-              key={t}
-              className={`dp-filter-chip ${
-                filterType === t ? "active" : ""
-              }`}
-              onClick={() => setFilterType(t)}
-            >
-              {t === "all"
-                ? "ALL"
-                : `${TYPE_META[t]?.icon} ${t.toUpperCase()}`}
-            </button>
-          ))}
+          <div className="dp-filter-group">
+            {statusFilters.map((s) => (
+              <button
+                key={s}
+                className={cls("dp-chip", filterStatus === s && "active")}
+                onClick={() => setFilterStatus(s)}
+              >
+                {s === "all" ? "All" : STATUS_META[s]?.label ?? s}
+                <span className="dp-chip-count">{countByStatus(s)}</span>
+              </button>
+            ))}
+          </div>
+          <div className="dp-filter-sep" />
+          <span className="dp-filter-label">Type</span>
+          <div className="dp-filter-group">
+            {typeFilters.map((t) => (
+              <button
+                key={t}
+                className={cls("dp-chip", filterType === t && "active")}
+                onClick={() => setFilterType(t)}
+              >
+                {t === "all" ? "All" : `${TYPE_META[t]?.icon} ${TYPE_META[t]?.label}`}
+                <span className="dp-chip-count">{countByType(t)}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="dp-layout">
+        {/* Main body */}
+        <div className="dp-body">
 
-          {/* LIVE GOOGLE MAP */}
-          <div className="dp-map-panel">
-            <div className="dp-map-header">
-              <span className="dp-map-title">
-                // Live Incident Map
+          {/* Map panel */}
+          <div className="dp-panel">
+            <div className="dp-panel-header">
+              <span className="dp-panel-title">
+                <Icon.Radar />
+                Live Incident Map
               </span>
-
-              <span className="dp-map-tag">
-                {filtered.length} ACTIVE
-              </span>
+              <span className="dp-count-pill">{filtered.length} Active</span>
             </div>
 
-            <div
-              style={{
-                width: "100%",
-                height: "540px",
-                overflow: "hidden",
-              }}
-            >
-              {selectedId ? (
-                (() => {
-                  const selectedReport = reports.find(
-                    (r) => String(r.id) === selectedId
-                  );
-
-                  if (!selectedReport?.location) {
-                    return (
-                      <div className="dp-empty">
-                        NO LOCATION FOUND
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <iframe
-                      title="Google Map"
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      src={`https://www.google.com/maps?q=${selectedReport.location}&z=16&output=embed`}
-                    />
-                  );
-                })()
-              ) : (
+            {!selectedReport || selectedReport.location ? (
+              <div className="dp-map-wrap">
                 <iframe
-                  title="Google Map Overview"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
+                  key={mapSrc}
+                  title="Incident map"
+                  src={mapSrc}
                   loading="lazy"
                   allowFullScreen
-                  src="https://www.google.com/maps?q=Dumaguete+City&z=13&output=embed"
                 />
-              )}
-            </div>
+                {selectedReport && (
+                  <div className="dp-map-overlay">
+                    <span className="dp-map-tag">
+                      <Icon.MapPin />
+                      {selectedReport.address || selectedReport.location}
+                    </span>
+                    <span className="dp-map-tag">
+                      {TYPE_META[selectedReport.type]?.icon}{" "}
+                      {selectedReport.type.toUpperCase()} —{" "}
+                      {STATUS_META[selectedReport.status]?.label}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="dp-map-empty">
+                <Icon.MapPin />
+                No location data for this report
+              </div>
+            )}
           </div>
 
-          {/* INCIDENT LIST */}
-          <div className="dp-list-panel">
-            <div className="dp-list-header">
-              <span className="dp-list-title">
-                // Incident Queue
+          {/* Queue panel */}
+          <div className="dp-panel">
+            <div className="dp-panel-header">
+              <span className="dp-panel-title">
+                <Icon.Layers />
+                Incident Queue
               </span>
-
-              <span className="dp-list-count">
-                {filtered.length} REPORTS
-              </span>
+              <span className="dp-count-pill">{filtered.length} Reports</span>
             </div>
 
-            <div className="dp-list-body">
+            <div className="dp-queue" ref={listRef}>
               {loading ? (
                 <div className="dp-empty">
                   <div className="dp-spinner" />
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="dp-empty">
-                  NO INCIDENTS FOUND
+                  <span className="dp-empty-icon">📭</span>
+                  No incidents match filters
                 </div>
               ) : (
                 filtered.map((r) => {
-                  const tm =
-                    TYPE_META[r.type] ?? TYPE_META.other;
-
-                  const sm =
-                    STATUS_META[r.status] ??
-                    STATUS_META.pending;
-
-                  const isMine =
-                    r.responder_id === responderId;
+                  const tm = TYPE_META[r.type]     ?? TYPE_META.other;
+                  const sm = STATUS_META[r.status] ?? STATUS_META.pending;
+                  const isMine    = r.responder_id === responderId;
+                  const isSel     = String(r.id) === selectedId;
+                  const unclaimed = !r.responder_id && r.status === "pending";
 
                   return (
                     <div
                       key={String(r.id)}
-                      className="dp-incident-row"
-                      onClick={() =>
-                        setSelectedId(String(r.id))
+                      className={cls(
+                        "dp-card",
+                        tm.colorClass,
+                        isSel && "selected"
+                      )}
+                      onClick={() => setSelectedId(isSel ? null : String(r.id))}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && setSelectedId(isSel ? null : String(r.id))
                       }
+                      aria-pressed={isSel}
                     >
-                      <div className="dp-inc-top">
-                        <div
-                          className="dp-inc-type-label"
-                          style={{ color: tm.color }}
-                        >
-                          <span>{tm.icon}</span>
-
-                          <span>
-                            {r.type.toUpperCase()}
-                          </span>
+                      {/* Type + Status row */}
+                      <div className="dp-card-top">
+                        <div className="dp-card-type">
+                          <span className="dp-card-icon">{tm.icon}</span>
+                          <span className="dp-card-type-label">{tm.label}</span>
                         </div>
-
-                        <span
-                          className="dp-inc-badge"
-                          style={{
-                            background: sm.bg,
-                            color: sm.color,
-                            border: `1px solid ${sm.border}`,
-                          }}
-                        >
+                        <div className={cls("dp-status", sm.colorClass)}>
+                          <span className="dp-status-dot" />
                           {sm.label}
-                        </span>
+                        </div>
                       </div>
 
-                      <div className="dp-inc-address">
-                        <FaMapMarkerAlt size={8} />
-
-                        {r.address ||
-                          r.location ||
-                          "No location"}
+                      {/* Address */}
+                      <div className="dp-card-addr">
+                        <Icon.MapPin />
+                        {r.address || r.location || "No location specified"}
                       </div>
 
-                      <div className="dp-inc-footer">
-                        <span className="dp-inc-meta-chip">
-                          <FaClock size={7} />
+                      {/* Description */}
+                      {r.description && (
+                        <div className="dp-card-desc">{r.description}</div>
+                      )}
+
+                      {/* Meta chips */}
+                      <div className="dp-meta">
+                        <span className="dp-tag">
+                          <Icon.Clock />
                           {formatRelative(r.created_at)}
                         </span>
-
                         {r.reporter_name && (
-                          <span className="dp-inc-meta-chip">
-                            <FaUser size={7} />
+                          <span className="dp-tag">
+                            <Icon.User />
                             {r.reporter_name}
                           </span>
                         )}
-
                         {r.reporter_contact && (
                           <a
                             href={`tel:${r.reporter_contact}`}
-                            className="dp-inc-meta-chip"
-                            style={{
-                              textDecoration: "none",
-                              color: "#2ECC8F",
-                            }}
+                            className="dp-tag dp-tag-tel"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <FaPhone size={7} />
+                            <Icon.Phone />
                             {r.reporter_contact}
                           </a>
                         )}
+                      </div>
 
-                        {!r.responder_id &&
-                          r.status === "pending" && (
-                            <button
-                              className="dp-claim-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                claimReport(r.id);
-                              }}
-                            >
-                              Claim →
-                            </button>
-                          )}
-
-                        {isMine &&
-                          r.status === "in-progress" && (
-                            <button className="dp-resolve-btn">
-                              <FaFileAlt size={8} />
-                              Resolve
-                            </button>
-                          )}
-
-                        {parseCoords(r.location) && (
+                      {/* Action buttons */}
+                      <div className="dp-actions">
+                        {unclaimed && (
+                          <button
+                            className="dp-btn dp-btn-claim"
+                            onClick={(e) => claimReport(r.id, e)}
+                          >
+                            <Icon.Bolt />
+                            Claim
+                          </button>
+                        )}
+                        {isMine && r.status === "in-progress" && (
+                          <button
+                            className="dp-btn dp-btn-resolve"
+                            onClick={(e) => resolveReport(r.id, e)}
+                          >
+                            <Icon.Check />
+                            Resolve
+                          </button>
+                        )}
+                        {hasCoords(r.location) && (
                           <a
                             href={`https://www.google.com/maps?q=${r.location}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="dp-nav-btn"
+                            className="dp-btn dp-btn-nav"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <FaRoute size={8} />
+                            <Icon.Route />
                             Navigate
+                          </a>
+                        )}
+                        {r.evidence_url && (
+                          <a
+                            href={r.evidence_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="dp-btn dp-btn-nav"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Icon.File />
+                            Evidence
                           </a>
                         )}
                       </div>
