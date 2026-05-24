@@ -15,49 +15,44 @@ interface Alert {
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────
 
-const ALERT_META: Record<string, { label: string; colorClass: string; icon: string }> = {
-  danger:  { label: "DANGER",  colorClass: "al-danger",  icon: "⚠" },
-  warning: { label: "WARNING", colorClass: "al-warning", icon: "⚠" },
-  info:    { label: "INFO",    colorClass: "al-info",    icon: "ℹ" },
-  success: { label: "SUCCESS", colorClass: "al-success", icon: "✓" },
+const ALERT_META: Record<string, { label: string; colorClass: string }> = {
+  danger:  { label: "DANGER",  colorClass: "al-danger"  },
+  warning: { label: "WARNING", colorClass: "al-warning" },
+  info:    { label: "INFO",    colorClass: "al-info"    },
+  success: { label: "SUCCESS", colorClass: "al-success" },
 };
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
 const Ico = {
   Bell: ({ size = 14 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
     </svg>
   ),
   Warn: ({ size = 13 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   ),
   Info: ({ size = 13 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
     </svg>
   ),
   Check: ({ size = 13 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
     </svg>
   ),
   Clock: ({ size = 9 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
     </svg>
   ),
   Broadcast: ({ size = 15 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle", flexShrink:0 }}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
       <path d="M1 6l10.1 7.5L22 6"/><path d="M1 18h22"/><path d="M1 12h4"/><path d="M19 12h4"/><circle cx="12" cy="12" r="2"/>
-    </svg>
-  ),
-  X: ({ size = 11 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display:"inline-block", verticalAlign:"middle" }}>
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   ),
 };
@@ -68,7 +63,6 @@ const STYLES = `
 :root {
   --ink:   #06101C;
   --s1:    #070F1B;
-  --s2:    #050D17;
   --edge:  rgba(255,255,255,0.07);
   --text:  #D8EAF8;
   --muted: rgba(216,234,248,0.45);
@@ -81,36 +75,63 @@ const STYLES = `
   --font-mono: 'IBM Plex Mono','Fira Mono',monospace;
   --font-body: 'DM Sans',system-ui,sans-serif;
 }
-@keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
 @keyframes spin    { to{transform:rotate(360deg)} }
+@keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes shimmer { from{background-position:-200% 0} to{background-position:200% 0} }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 .ra{font-family:var(--font-body);color:var(--text);min-height:100vh;background:var(--ink)}
 
-/* ── Header ── */
+/* ── Header — always visible immediately ── */
 .ra-hd{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px}
 .ra-eyebrow{font-family:var(--font-mono);font-size:10px;color:rgba(243,51,51,.6);letter-spacing:.28em;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:8px}
 .ra-eyebrow::before{content:'';display:block;width:20px;height:1px;background:var(--red);opacity:.5}
 .ra-title{font-family:var(--font-head);font-size:42px;font-weight:400;color:#fff;letter-spacing:.04em;line-height:1}
 
-/* ── Stats ── */
+/* ── Stats — always visible, numbers swap in ── */
 .ra-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .ra-stat{background:rgba(6,17,32,.92);border:1px solid var(--edge);border-radius:12px;padding:16px;position:relative;overflow:hidden}
 .ra-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.ra-stat-icon{font-size:16px;margin-bottom:10px;opacity:.85}
-.ra-stat-num{font-family:var(--font-head);font-size:34px;line-height:1;margin-bottom:5px}
+.ra-stat-icon{font-size:16px;margin-bottom:10px;opacity:.85;display:flex;align-items:center}
+.ra-stat-num{font-family:var(--font-head);font-size:34px;line-height:1;margin-bottom:5px;min-height:34px}
 .ra-stat-lbl{font-family:var(--font-mono);font-size:8.5px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 
-/* Stat color variants */
-.ra-stat.sc-total  { }
+.ra-stat.sc-total  ::before,.ra-stat.sc-total  .ra-stat-icon,.ra-stat.sc-total  .ra-stat-num{color:var(--text)}
 .ra-stat.sc-total  ::before{background:var(--text)}
-.ra-stat.sc-total  .ra-stat-icon,.ra-stat.sc-total  .ra-stat-num{color:var(--text)}
 .ra-stat.sc-danger ::before{background:var(--red)}
 .ra-stat.sc-danger .ra-stat-icon,.ra-stat.sc-danger .ra-stat-num{color:var(--red)}
 .ra-stat.sc-warning::before{background:var(--amber)}
 .ra-stat.sc-warning .ra-stat-icon,.ra-stat.sc-warning .ra-stat-num{color:var(--amber)}
 .ra-stat.sc-info   ::before{background:var(--blue)}
 .ra-stat.sc-info   .ra-stat-icon,.ra-stat.sc-info   .ra-stat-num{color:var(--blue)}
+
+/* ── Skeleton shimmer ── */
+.ra-skel{
+  background: linear-gradient(90deg,
+    rgba(255,255,255,.04) 25%,
+    rgba(255,255,255,.08) 50%,
+    rgba(255,255,255,.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+.ra-skel-num{height:34px;width:40px;border-radius:4px;margin-bottom:5px}
+.ra-skel-card{
+  background:rgba(6,17,32,.92);
+  border:1px solid var(--edge);
+  border-left:3px solid rgba(255,255,255,.06);
+  border-radius:12px;
+  padding:16px 18px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.ra-skel-badge{height:20px;width:72px}
+.ra-skel-title{height:18px;width:65%}
+.ra-skel-msg-1{height:12px;width:100%}
+.ra-skel-msg-2{height:12px;width:78%}
+.ra-skel-foot{height:12px;width:80px}
 
 /* ── Layout ── */
 .ra-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
@@ -120,12 +141,17 @@ const STYLES = `
 .ra-list{display:flex;flex-direction:column;gap:10px}
 .ra-empty{text-align:center;padding:52px;font-family:var(--font-mono);font-size:10.5px;color:var(--dim);letter-spacing:.12em}
 
-/* ── Alert card ── */
-.ra-card{background:rgba(6,17,32,.92);border:1px solid;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s,box-shadow .2s;animation:slideUp .3s ease both;position:relative;overflow:hidden}
+/* ── Alert card — fade in only, no translateY so no layout shift ── */
+.ra-card{
+  background:rgba(6,17,32,.92);border:1px solid;border-radius:12px;
+  padding:16px 18px;display:flex;flex-direction:column;gap:10px;
+  transition:border-color .2s,box-shadow .2s;
+  animation:fadeIn .25s ease both;
+  position:relative;overflow:hidden;
+}
 .ra-card::before{content:'';position:absolute;top:0;left:0;right:0;height:36px;background:linear-gradient(180deg,currentColor,transparent);opacity:.06;pointer-events:none}
 .ra-card:hover{box-shadow:0 8px 40px rgba(0,0,0,.4)}
 
-/* Card color variants */
 .ra-card.al-danger {border-left:3px solid var(--red);  border-color:rgba(243,51,51,.22)}
 .ra-card.al-warning{border-left:3px solid var(--amber); border-color:rgba(255,153,0,.22)}
 .ra-card.al-info   {border-left:3px solid var(--blue);  border-color:rgba(77,158,255,.22)}
@@ -165,7 +191,6 @@ const STYLES = `
 .ra-textarea::placeholder{color:var(--dim)}
 .ra-textarea:focus{border-color:rgba(243,51,51,.3)}
 
-/* Type selector */
 .ra-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .ra-type-opt{display:flex;align-items:center;gap:7px;padding:9px 11px;background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:8px;cursor:pointer;font-size:11px;font-weight:500;color:var(--muted);transition:all .15s}
 .ra-type-opt:hover:not(.active){border-color:rgba(255,255,255,.15);color:var(--text)}
@@ -173,19 +198,15 @@ const STYLES = `
 .ra-type-opt.active.al-warning{background:rgba(255,153,0,.1); border-color:rgba(255,153,0,.3); color:var(--amber)}
 .ra-type-opt.active.al-info   {background:rgba(77,158,255,.1);border-color:rgba(77,158,255,.3);color:var(--blue)}
 .ra-type-opt.active.al-success{background:rgba(0,220,130,.1); border-color:rgba(0,220,130,.3); color:var(--green)}
-.ra-type-icon{font-size:13px;flex-shrink:0}
+.ra-type-icon{font-size:13px;flex-shrink:0;display:flex;align-items:center}
 
-/* Success banner */
 .ra-success{text-align:center;padding:10px 14px;background:rgba(0,220,130,.07);border:1px solid rgba(0,220,130,.2);border-radius:8px;font-family:var(--font-mono);font-size:9.5px;color:var(--green);letter-spacing:.08em;display:flex;align-items:center;justify-content:center;gap:7px}
 
-/* Send button */
 .ra-send{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-body);font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
 .ra-send:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.1)}
 .ra-send:active:not(:disabled){transform:none}
 .ra-send:disabled{opacity:.4;cursor:not-allowed;background:rgba(216,234,248,.1);color:rgba(216,234,248,.3)}
 
-/* Spinner */
-.ra-spinner{display:inline-block;width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:var(--red);animation:spin .7s linear infinite}
 .ra-spinner-sm{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.15);border-top-color:#fff;animation:spin .7s linear infinite}
 `;
 
@@ -203,12 +224,30 @@ function cls(...args: (string | false | undefined | null)[]): string {
   return args.filter(Boolean).join(" ");
 }
 
-// ─── Alert type icon helper ───────────────────────────────────────────────────
-
 function AlertTypeIcon({ type, size = 13 }: { type: string; size?: number }) {
   if (type === "info")    return <Ico.Info size={size} />;
   if (type === "success") return <Ico.Check size={size} />;
   return <Ico.Warn size={size} />;
+}
+
+// ─── Skeleton components ──────────────────────────────────────────────────────
+
+function SkeletonCards({ count = 3 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="ra-skel-card">
+          <div><div className="ra-skel ra-skel-badge" /></div>
+          <div className="ra-skel ra-skel-title" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="ra-skel ra-skel-msg-1" />
+            <div className="ra-skel ra-skel-msg-2" />
+          </div>
+          <div className="ra-skel ra-skel-foot" />
+        </div>
+      ))}
+    </>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -223,12 +262,15 @@ export default function ResponderAlertsPage() {
   const [alertType, setAlertType] = useState("warning");
 
   const loadAlerts = async () => {
-    const { data } = await supabase
-      .from("alerts")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setAlerts(data ?? []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("alerts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setAlerts(data ?? []);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -243,23 +285,27 @@ export default function ResponderAlertsPage() {
   const handleSend = async () => {
     if (!title.trim() || !message.trim()) return;
     setSending(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("alerts").insert({
-      title:       title.trim(),
-      message:     message.trim(),
-      type:        alertType,
-      created_by:  user?.id ?? null,
-      target_role: "citizen",
-    });
-    setTitle("");
-    setMessage("");
-    setAlertType("warning");
-    setSending(false);
-    setSent(true);
-    setTimeout(() => setSent(false), 3500);
-    await loadAlerts();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from("alerts").insert({
+        title:       title.trim(),
+        message:     message.trim(),
+        type:        alertType,
+        created_by:  user?.id ?? null,
+        target_role: "citizen",
+      });
+      setTitle("");
+      setMessage("");
+      setAlertType("warning");
+      setSent(true);
+      setTimeout(() => setSent(false), 3500);
+      await loadAlerts();
+    } finally {
+      setSending(false);
+    }
   };
 
+  // Counts — 0 while loading, real values after
   const counts = {
     total:   alerts.length,
     danger:  alerts.filter((a) => a.type === "danger").length,
@@ -281,35 +327,37 @@ export default function ResponderAlertsPage() {
       <style>{STYLES}</style>
       <div className="ra">
 
-        {/* Header */}
+        {/* ── Header — renders immediately, no loading gate ── */}
         <div className="ra-hd">
           <div>
             <div className="ra-eyebrow">Field Operations</div>
             <div className="ra-title">ALERTS</div>
           </div>
-          {loading && <div className="ra-spinner" />}
         </div>
 
-        {/* Stats */}
+        {/* ── Stats — structure always visible, numbers fill in ── */}
         <div className="ra-stats">
           {statCards.map((s) => (
             <div key={s.label} className={cls("ra-stat", s.colorClass)}>
               <div className="ra-stat-icon">{s.icon}</div>
-              <div className="ra-stat-num">{loading ? "—" : s.value}</div>
+              <div className="ra-stat-num">
+                {loading
+                  ? <div className="ra-skel ra-skel-num" />
+                  : s.value
+                }
+              </div>
               <div className="ra-stat-lbl">{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Layout */}
+        {/* ── Layout ── */}
         <div className="ra-layout">
 
-          {/* Alert feed */}
+          {/* Alert feed — skeleton → real cards */}
           <div className="ra-list">
             {loading ? (
-              <div className="ra-empty">
-                <div className="ra-spinner" style={{ margin: "0 auto" }} />
-              </div>
+              <SkeletonCards count={3} />
             ) : alerts.length === 0 ? (
               <div className="ra-empty">NO ALERTS YET</div>
             ) : (
@@ -344,7 +392,7 @@ export default function ResponderAlertsPage() {
             )}
           </div>
 
-          {/* Compose panel */}
+          {/* ── Compose panel — always fully visible ── */}
           <div className="ra-compose">
             <div className="ra-compose-hd">
               <div className="ra-compose-icon"><Ico.Broadcast size={15} /></div>
@@ -354,7 +402,6 @@ export default function ResponderAlertsPage() {
               </div>
             </div>
 
-            {/* Type selector */}
             <div className="ra-field">
               <span className="ra-label">Alert Type</span>
               <div className="ra-type-grid">
@@ -376,7 +423,6 @@ export default function ResponderAlertsPage() {
               </div>
             </div>
 
-            {/* Title */}
             <div className="ra-field">
               <label className="ra-label">Title</label>
               <input
@@ -387,7 +433,6 @@ export default function ResponderAlertsPage() {
               />
             </div>
 
-            {/* Message */}
             <div className="ra-field">
               <label className="ra-label">Message</label>
               <textarea
@@ -398,7 +443,6 @@ export default function ResponderAlertsPage() {
               />
             </div>
 
-            {/* Success banner */}
             {sent && (
               <div className="ra-success">
                 <Ico.Check size={12} />
@@ -406,17 +450,15 @@ export default function ResponderAlertsPage() {
               </div>
             )}
 
-            {/* Send button */}
             <button
               className="ra-send"
               disabled={!title.trim() || !message.trim() || sending}
               onClick={handleSend}
             >
-              {sending ? (
-                <><span className="ra-spinner-sm" /> Sending…</>
-              ) : (
-                <><Ico.Bell size={14} /> Broadcast Alert</>
-              )}
+              {sending
+                ? <><span className="ra-spinner-sm" /> Sending…</>
+                : <><Ico.Bell size={14} /> Broadcast Alert</>
+              }
             </button>
           </div>
         </div>
