@@ -1,6 +1,6 @@
 // src/pages/Homepage.tsx
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { FaMapMarkedAlt, FaUsers, FaLightbulb, FaPhoneAlt, FaEye, FaEyeSlash, FaShieldAlt } from "react-icons/fa";
 import { supabase } from "../js/supabase";
 import homepageBg from "../assets/homepage.bg.jpg";
@@ -66,24 +66,42 @@ function useCounter(target: number, duration = 1800, start = false) {
   useEffect(() => {
     if (!start) return;
     let startTime: number | null = null;
+    const raf = { id: 0 };
     const step = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       const ease = 1 - Math.pow(1 - progress, 3);
       setCount(Math.floor(ease * target));
-      if (progress < 1) requestAnimationFrame(step);
-      else setCount(target);
+      if (progress < 1) {
+        raf.id = requestAnimationFrame(step);
+      } else {
+        setCount(target);
+      }
     };
-    requestAnimationFrame(step);
+    raf.id = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf.id);
   }, [start, target, duration]);
   return count;
 }
 
-function StatCounter({ value, label, suffix, start }: { value: number; label: string; suffix: string; start: boolean }) {
+function StatCounter({
+  value,
+  label,
+  suffix,
+  start,
+}: {
+  value: number;
+  label: string;
+  suffix: string;
+  start: boolean;
+}) {
   const count = useCounter(value, 1800, start);
   return (
     <div className="hp-stat">
-      <div className="hp-stat-value">{count}<span className="hp-stat-suffix">{suffix}</span></div>
+      <div className="hp-stat-value">
+        {count}
+        <span className="hp-stat-suffix">{suffix}</span>
+      </div>
       <div className="hp-stat-label">{label}</div>
     </div>
   );
@@ -98,42 +116,43 @@ export default function Homepage() {
   const [error, setError]               = useState<string | null>(null);
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
-
   const authListenerRef = useRef<any>(null);
 
+  // ── Auth state listener ──────────────────────────────────────────────────
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_OUT") return;
-      if (event === "TOKEN_REFRESHED") return;
-      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
-      if (!session?.user) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_OUT") return;
+        if (event === "TOKEN_REFRESHED") return;
+        if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+        if (!session?.user) return;
 
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session.user.id)
-          .single();
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
 
-        const role = profile?.role?.trim().toLowerCase();
-        if (role && ROLE_REDIRECT[role]) {
-          navigate(ROLE_REDIRECT[role], { replace: true });
-        } else if (role) {
-          navigate("/citizen/dashboard", { replace: true });
+          const role = profile?.role?.trim().toLowerCase();
+          if (role && ROLE_REDIRECT[role]) {
+            navigate(ROLE_REDIRECT[role], { replace: true });
+          } else if (role) {
+            navigate("/citizen/dashboard", { replace: true });
+          }
+        } catch (err) {
+          console.error("Error fetching profile:", err);
         }
-      } catch (err) {
-        console.error("Error fetching profile:", err);
       }
-    });
+    );
 
     authListenerRef.current = subscription;
     return () => {
-      if (authListenerRef.current) {
-        authListenerRef.current.unsubscribe();
-      }
+      authListenerRef.current?.unsubscribe();
     };
   }, [navigate]);
 
+  // ── Stats intersection observer ──────────────────────────────────────────
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setStatsVisible(true); },
@@ -143,6 +162,7 @@ export default function Homepage() {
     return () => observer.disconnect();
   }, []);
 
+  // ── Login handler ────────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!email || !password) {
       setError("Please enter your email and password.");
@@ -196,12 +216,15 @@ export default function Homepage() {
     }
   };
 
+  // ── Doubled ticker items (memoised to avoid re-creation on every render) ─
+  const tickerItems = [...TICKER_ITEMS, ...TICKER_ITEMS];
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
-        /* ── Reset box-sizing globally for this component ── */
+        /* ── Reset ── */
         .hp-root *, .hp-root *::before, .hp-root *::after {
           box-sizing: border-box;
         }
@@ -220,13 +243,19 @@ export default function Homepage() {
         .hp-bg {
           position: fixed; inset: 0; z-index: -1;
           overflow: hidden;
+          /* FIX: promote to its own compositing layer */
+          will-change: transform;
+          transform: translateZ(0);
         }
         .hp-bg-img {
           width: 100%; height: 100%;
           object-fit: cover; object-position: center bottom; display: block;
           transform-origin: center center;
-          animation: bgDrift 28s ease-in-out infinite;
+          /* FIX: simplified drift — fewer translate steps = fewer repaints */
+          animation: bgDrift 30s ease-in-out infinite;
           will-change: transform;
+          /* FIX: force GPU compositing */
+          transform: translateZ(0) scale(1.08);
         }
         .hp-bg-overlay {
           position: absolute; inset: 0;
@@ -252,18 +281,21 @@ export default function Homepage() {
           background-size: 200px; opacity: 0.45; pointer-events: none;
         }
 
+        /* FIX: simplified 2-keyframe drift — scale only, no translate jank */
         @keyframes bgDrift {
-          0%   { transform: scale(1.08) translate(0px, 0px); }
-          25%  { transform: scale(1.12) translate(-18px, -10px); }
-          50%  { transform: scale(1.10) translate(-8px, -20px); }
-          75%  { transform: scale(1.13) translate(12px, -8px); }
-          100% { transform: scale(1.08) translate(0px, 0px); }
+          0%   { transform: translateZ(0) scale(1.08) translate(0px, 0px); }
+          25%  { transform: translateZ(0) scale(1.11) translate(-12px, -8px); }
+          50%  { transform: translateZ(0) scale(1.10) translate(-6px, -14px); }
+          75%  { transform: translateZ(0) scale(1.11) translate(8px, -6px); }
+          100% { transform: translateZ(0) scale(1.08) translate(0px, 0px); }
         }
 
         /* ── Orbs ── */
         .hp-orb {
           position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
           animation: orbDrift linear infinite;
+          will-change: transform;
+          transform: translateZ(0);
         }
         .hp-orb-1 {
           width: 320px; height: 320px;
@@ -284,10 +316,10 @@ export default function Homepage() {
           animation-duration: 18s; animation-delay: -5s;
         }
         @keyframes orbDrift {
-          0%   { transform: translate(0, 0) scale(1); }
-          33%  { transform: translate(20px, -30px) scale(1.05); }
-          66%  { transform: translate(-15px, 20px) scale(0.97); }
-          100% { transform: translate(0, 0) scale(1); }
+          0%   { transform: translateZ(0) translate(0, 0) scale(1); }
+          33%  { transform: translateZ(0) translate(20px, -30px) scale(1.05); }
+          66%  { transform: translateZ(0) translate(-15px, 20px) scale(0.97); }
+          100% { transform: translateZ(0) translate(0, 0) scale(1); }
         }
 
         /* ── Badge row ── */
@@ -408,9 +440,7 @@ export default function Homepage() {
           color: #F8FAFC;
           margin-bottom: 24px;
         }
-        .hp-hero h1 .accent {
-          color: #A8D8FF;
-        }
+        .hp-hero h1 .accent { color: #A8D8FF; }
 
         .hp-hero-sub {
           font-size: 16px; font-weight: 300;
@@ -473,9 +503,7 @@ export default function Homepage() {
           color: #F8FAFC; line-height: 1;
           margin-bottom: 6px;
         }
-        .hp-stat-suffix {
-          font-size: 16px; color: #A8D8FF; margin-left: 2px;
-        }
+        .hp-stat-suffix { font-size: 16px; color: #A8D8FF; margin-left: 2px; }
         .hp-stat-label {
           font-size: 10px; font-weight: 400; letter-spacing: 0.06em;
           text-transform: uppercase; color: rgba(168,216,255,0.45);
@@ -514,6 +542,7 @@ export default function Homepage() {
           background: linear-gradient(90deg, transparent 0%, rgba(0,200,224,0.18) 40%, rgba(0,200,224,0.35) 50%, rgba(0,200,224,0.18) 60%, transparent 100%);
           animation: scanLine 5s ease-in-out infinite;
           filter: blur(1px);
+          will-change: top;
         }
         @keyframes scanLine {
           0%   { top: 0%; opacity: 0; }
@@ -536,8 +565,7 @@ export default function Homepage() {
         .hp-auth-title {
           font-family: 'Syne', sans-serif;
           font-size: 22px; font-weight: 800;
-          color: #F8FAFC;
-          margin-bottom: 4px;
+          color: #F8FAFC; margin-bottom: 4px;
         }
         .hp-auth-subtitle {
           font-size: 13px; font-weight: 300;
@@ -771,15 +799,19 @@ export default function Homepage() {
           background: rgba(7,16,29,0.60);
           position: relative; z-index: 2;
         }
+        /* FIX: ticker track — GPU-composited, no layout triggers */
         .hp-ticker-track {
           display: flex; gap: 64px; align-items: center;
+          /* FIX: use transform instead of any left/margin trick; will-change promotes layer */
           animation: tickerScroll 28s linear infinite;
           white-space: nowrap;
+          will-change: transform;
+          transform: translateZ(0);
         }
         .hp-ticker:hover .hp-ticker-track { animation-play-state: paused; }
         @keyframes tickerScroll {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
+          from { transform: translateZ(0) translateX(0); }
+          to   { transform: translateZ(0) translateX(-50%); }
         }
         .hp-ticker-item {
           font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 400;
@@ -812,13 +844,10 @@ export default function Homepage() {
            RESPONSIVE BREAKPOINTS
            ════════════════════════════════════════ */
 
-        /* ── Tablet: stack hero layout ── */
         @media (max-width: 860px) {
           .hp-hero {
             grid-template-columns: 1fr;
-            margin-top: 24px;
-            margin-bottom: 48px;
-            gap: 32px;
+            margin-top: 24px; margin-bottom: 48px; gap: 32px;
           }
           .hp-auth-panel { order: -1; }
           .hp-badge-slot { width: 100%; max-width: none; }
@@ -826,46 +855,31 @@ export default function Homepage() {
           .hp-nav-badge { justify-content: center; }
         }
 
-        /* ── Mobile: OnePlus Nord (~412px) and similar ── */
         @media (max-width: 600px) {
           .hp-inner { padding: 0 16px; }
-
-          /* Badge */
           .hp-badge-row { padding-top: 10px; }
           .hp-nav-badge { padding: 10px 16px; }
           .hp-badge-text { font-size: 11px; }
-
-          /* Ticker */
           .hp-ticker { border-radius: 8px; padding: 9px 0; }
           .hp-ticker-label { padding: 0 12px; margin-right: 12px; font-size: 8px; }
           .hp-ticker-item { font-size: 11px; }
-
-          /* Hero text */
           .hp-hero { margin-top: 16px; margin-bottom: 36px; gap: 24px; }
           .hp-hero h1 { margin-bottom: 14px; }
           .hp-hero-sub { font-size: 14px; margin-bottom: 22px; }
           .hp-hero-eyebrow { font-size: 10px; margin-bottom: 14px; }
           .hp-hero-cta { padding: 12px 22px; font-size: 12px; }
-
-          /* Auth panel */
           .hp-auth-panel { padding: 20px 16px 18px; border-radius: 12px; }
           .hp-auth-title { font-size: 19px; }
           .hp-auth-subtitle { font-size: 12px; margin-bottom: 18px; }
           .hp-auth-input { padding: 10px 12px; font-size: 13px; }
           .hp-auth-btn { padding: 12px; font-size: 12px; }
           .hp-auth-create { padding: 12px; font-size: 12px; }
-
-          /* Stats bar */
           .hp-stats { margin-top: 28px; }
           .hp-stat { padding: 14px 8px; }
           .hp-stat-value { font-size: 22px; }
           .hp-stat-suffix { font-size: 13px; }
           .hp-stat-label { font-size: 9px; letter-spacing: 0.04em; }
-
-          /* Divider */
           .hp-divider { margin-bottom: 24px; }
-
-          /* Cards — keep 2-col on Nord */
           .hp-grid { gap: 10px; }
           .hp-card { padding: 16px 14px; gap: 8px; border-radius: 10px; }
           .hp-card-icon { width: 40px; height: 40px; border-radius: 10px; }
@@ -876,7 +890,6 @@ export default function Homepage() {
           .hp-card-action { font-size: 11px; margin-top: 2px; }
         }
 
-        /* ── Extra small: 360px and below → 1-col cards ── */
         @media (max-width: 360px) {
           .hp-inner { padding: 0 12px; }
           .hp-grid { grid-template-columns: 1fr; }
@@ -889,6 +902,7 @@ export default function Homepage() {
 
       <div className="hp-root">
 
+        {/* ── Background ── */}
         <div className="hp-bg">
           <img src={homepageBg} alt="" className="hp-bg-img" aria-hidden="true" />
           <div className="hp-bg-overlay" />
@@ -902,18 +916,20 @@ export default function Homepage() {
 
         <div className="hp-inner">
 
+          {/* ── Ticker ── FIX: Fragment with key on the wrapper, not the inner span ── */}
           <div className="hp-ticker">
             <div className="hp-ticker-label">LIVE</div>
             <div className="hp-ticker-track">
-              {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-                <>
-                  <span key={i} className="hp-ticker-item">{item}</span>
+              {tickerItems.map((item, i) => (
+                <Fragment key={i}>
+                  <span className="hp-ticker-item">{item}</span>
                   <span className="hp-ticker-dot" />
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
 
+          {/* ── Badge ── */}
           <div className="hp-badge-row">
             <div className="hp-badge-slot">
               <a href="tel:911" className="hp-nav-badge">
@@ -927,6 +943,7 @@ export default function Homepage() {
             </div>
           </div>
 
+          {/* ── Hero ── */}
           <section className="hp-hero">
             <div className="hp-hero-copy">
               <div className="hp-hero-eyebrow">Community Safety Platform</div>
@@ -948,11 +965,18 @@ export default function Homepage() {
 
               <div className="hp-stats" ref={statsRef}>
                 {STATS.map((s) => (
-                  <StatCounter key={s.label} value={s.value} label={s.label} suffix={s.suffix} start={statsVisible} />
+                  <StatCounter
+                    key={s.label}
+                    value={s.value}
+                    label={s.label}
+                    suffix={s.suffix}
+                    start={statsVisible}
+                  />
                 ))}
               </div>
             </div>
 
+            {/* ── Auth Panel ── */}
             <div className="hp-auth-panel">
               <div className="hp-auth-scan" />
               <div className="hp-auth-watermark">
@@ -967,8 +991,11 @@ export default function Homepage() {
               <div className="hp-auth-field">
                 <label className="hp-auth-label">Email Address</label>
                 <input
-                  className="hp-auth-input" type="email" placeholder="you@example.com"
-                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="hp-auth-input"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                 />
               </div>
@@ -1016,7 +1043,11 @@ export default function Homepage() {
 
               {error && <div className="hp-auth-error">⚠ {error}</div>}
 
-              <button className="hp-auth-btn" onClick={handleLogin} disabled={loading}>
+              <button
+                className="hp-auth-btn"
+                onClick={handleLogin}
+                disabled={loading}
+              >
                 {loading ? "Signing in…" : "Login Account"}
               </button>
 
@@ -1032,15 +1063,19 @@ export default function Homepage() {
             </div>
           </section>
 
+          {/* ── Quick Access Divider ── */}
           <div className="hp-divider">
             <span className="hp-divider-label">Quick Access</span>
             <span className="hp-divider-line" />
           </div>
 
+          {/* ── Cards Grid ── */}
           <div className="hp-grid">
             {cards.map((card) => (
               <Link
-                key={card.to} to={card.to} className="hp-card"
+                key={card.to}
+                to={card.to}
+                className="hp-card"
                 style={{
                   "--accent-color": card.accent,
                   "--accent-alpha": `${card.accent}20`,
