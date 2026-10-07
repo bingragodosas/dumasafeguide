@@ -33,6 +33,7 @@ const AdminHistoryLog = lazy(() => import("./AdminHistoryLog"));
 const AdminDispatch = lazy(() => import("./AdminDispatch"));
 const AdminChatDrawer = lazy(() => import("./components/AdminChatDrawer"));
 import { fetchUnreadCounts } from "../hooks/useRealtimeChat";
+import ThemeToggle from "../components/ThemeToggle";
 
 const AdminLazyFallback = () => (
   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: "rgba(238,240,247,0.35)", fontSize: 13 }}>
@@ -991,6 +992,7 @@ export default function AdminDashboard() {
 
               <div className="hud-topbar-right">
                 <span className="hud-topbar-time">{clock}</span>
+                <ThemeToggle compact />
                 <div className="hud-notif-wrap">
                   <button
                     id="admin-chat-trigger"

@@ -11,6 +11,7 @@ const ResponderChatDrawer = lazy(() => import("./components/ResponderChatDrawer"
 const ResponderCitizenChatDrawer = lazy(() => import("./components/ResponderCitizenChatDrawer"));
 import GlobalResponderCallHandler from "./components/GlobalResponderCallHandler";
 import { fetchUnreadCounts } from "../hooks/useRealtimeChat";
+import ThemeToggle from "../components/ThemeToggle";
 import { useDepartmentNotifications } from "../hooks/useDepartmentNotifications";
 import { usePresence } from "../hooks/usePresence";
 import { useHeartbeat, markOffline } from "../hooks/useHeartbeat";
@@ -986,6 +987,7 @@ export default function RespondersDashboard() {
 
               <div className="rd-topbar-right">
                 <span className="rd-clock">{clock}</span>
+                <ThemeToggle compact />
                 <button
                   id="responder-chat-trigger"
                   onClick={() => { setIsChatOpen(true); setChatUnread(0); }}
