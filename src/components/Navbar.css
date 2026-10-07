@@ -424,3 +424,86 @@
   .csb-pill { display: none; }
   .csb-bell { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   PRO LIGHT MODE — public navbar + mobile drawer
+   Dark-slate type on frosted-white surfaces. Keeps brand
+   red/blue accents, guarantees ≥ 4.5:1 link contrast.
+   ════════════════════════════════════════════════════════════ */
+html[data-theme="light"] .navbar-container {
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid rgba(15, 30, 51, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+html[data-theme="light"] .navbar-container.scrolled {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(15, 30, 51, 0.12);
+  box-shadow: 0 4px 24px rgba(15, 30, 51, 0.08);
+}
+html[data-theme="light"] .logo-text { color: #0f1e33; }
+html[data-theme="light"] .logo-guide-text { color: #1d4fd7; }
+html[data-theme="light"] .nav-links a { color: rgba(15, 30, 51, 0.72); }
+html[data-theme="light"] .nav-links a:hover { color: #0f1e33; }
+html[data-theme="light"] .nav-login-link { color: rgba(15, 30, 51, 0.72) !important; }
+html[data-theme="light"] .nav-login-link:hover { color: #0f1e33 !important; }
+html[data-theme="light"] .nav-hamburger {
+  background: rgba(15, 30, 51, 0.04);
+  border-color: rgba(15, 30, 51, 0.14);
+}
+html[data-theme="light"] .nav-hamburger:hover {
+  background: rgba(15, 30, 51, 0.07);
+  border-color: rgba(29, 79, 215, 0.35);
+}
+html[data-theme="light"] .nav-hamburger span { background: rgba(15, 30, 51, 0.75); }
+html[data-theme="light"] .nav-overlay {
+  background: rgba(15, 30, 51, 0.38);
+}
+html[data-theme="light"] .nav-drawer {
+  background: rgba(255, 255, 255, 0.99);
+  border-left: 1px solid rgba(15, 30, 51, 0.10);
+  box-shadow: -12px 0 40px rgba(15, 30, 51, 0.12);
+}
+html[data-theme="light"] .nav-drawer-brand-name { color: #0f1e33; }
+html[data-theme="light"] .nav-drawer-brand-name span { color: #1d4fd7; }
+html[data-theme="light"] .nav-drawer-close {
+  background: rgba(15, 30, 51, 0.04);
+  border-color: rgba(15, 30, 51, 0.12);
+  color: rgba(15, 30, 51, 0.55);
+}
+html[data-theme="light"] .nav-drawer-close:hover {
+  background: rgba(179, 35, 35, 0.08);
+  color: #b32323;
+  border-color: rgba(179, 35, 35, 0.30);
+}
+html[data-theme="light"] .nav-drawer-user {
+  background: rgba(15, 30, 51, 0.03);
+  border-color: rgba(15, 30, 51, 0.08);
+}
+html[data-theme="light"] .nav-drawer-user-name { color: rgba(15, 30, 51, 0.90); }
+html[data-theme="light"] .nav-drawer-user-role { color: rgba(0, 122, 77, 0.85); }
+html[data-theme="light"] .nav-drawer-divider {
+  background: linear-gradient(90deg, transparent, rgba(15, 30, 51, 0.14), transparent);
+}
+html[data-theme="light"] .nav-drawer-links a { color: rgba(15, 30, 51, 0.72); }
+html[data-theme="light"] .nav-drawer-links a:hover {
+  background: rgba(15, 30, 51, 0.04);
+  border-color: rgba(29, 79, 215, 0.18);
+  color: #0f1e33;
+}
+html[data-theme="light"] .nav-logout-btn {
+  border-color: rgba(179, 35, 35, 0.35);
+  background: rgba(179, 35, 35, 0.06);
+  color: #b32323;
+}
+html[data-theme="light"] .csb-pill {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 30, 51, 0.12);
+}
+html[data-theme="light"] .csb-name { color: rgba(15, 30, 51, 0.72); }
+html[data-theme="light"] .csb-bell {
+  background: rgba(15, 30, 51, 0.04);
+  border-color: rgba(15, 30, 51, 0.12);
+  color: rgba(15, 30, 51, 0.60);
+}
+html[data-theme="light"] .csb-bell:hover { background: rgba(15, 30, 51, 0.08); color: #0f1e33; }

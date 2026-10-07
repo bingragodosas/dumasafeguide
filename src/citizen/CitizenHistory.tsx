@@ -31,18 +31,18 @@ interface Report {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<string, { icon: string; color: string }> = {
-  fire:     { icon: "🔥", color: "#FF6B6B" },
-  accident: { icon: "🚗", color: "#FFD166" },
-  flood:    { icon: "🌊", color: "#7B9EFF" },
-  crime:    { icon: "🚨", color: "#FF9F43" },
-  medical:  { icon: "🏥", color: "#2ECC8F" },
-  other:    { icon: "⚠️", color: "#8fa3be" },
+  fire:     { icon: "🔥", color: "var(--c-fire)" },
+  accident: { icon: "🚗", color: "var(--c-accident)" },
+  flood:    { icon: "🌊", color: "var(--c-flood)" },
+  crime:    { icon: "🚨", color: "var(--c-crime)" },
+  medical:  { icon: "🏥", color: "var(--c-medical)" },
+  other:    { icon: "⚠️", color: "var(--c-other)" },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:       { label: "PENDING",     color: "#FFD166", bg: "rgba(255,209,102,.12)", border: "rgba(255,209,102,.3)"  },
-  "in-progress": { label: "IN PROGRESS", color: "#7B9EFF", bg: "rgba(123,158,255,.12)", border: "rgba(123,158,255,.3)"  },
-  resolved:      { label: "RESOLVED",    color: "#2ECC8F", bg: "rgba(46,204,143,.12)", border: "rgba(46,204,143,.3)"  },
+  pending:       { label: "PENDING",     color: "var(--c-pending)",  bg: "var(--clr-yellow-bg)", border: "var(--clr-yellow-border)" },
+  "in-progress": { label: "IN PROGRESS", color: "var(--c-progress)", bg: "var(--clr-blue-bg)",   border: "var(--clr-blue-border)"  },
+  resolved:      { label: "RESOLVED",    color: "var(--c-resolved)", bg: "var(--clr-green-bg)",  border: "var(--clr-green-border)" },
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -51,18 +51,18 @@ const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Instrument+Sans:wght@400;500;600&display=swap');
 
 :root {
-  --bg: #080c14;
-  --surface: #0f1521;
-  --surface-2: #161d2e;
-  --border: rgba(255,255,255,0.06);
-  --border-2: rgba(255,255,255,0.10);
-  --text: #eef0f7;
-  --text-2: rgba(238,240,247,0.55);
-  --text-3: rgba(238,240,247,0.25);
-  --green: #2ECC8F;
-  --red: #FF6B6B;
-  --blue: #7B9EFF;
-  --yellow: #FFD166;
+  --bg: var(--clr-bg);
+  --surface: var(--citizen-card);
+  --surface-2: var(--clr-surface-2);
+  --border: var(--clr-border);
+  --border-2: var(--clr-border-2);
+  --text: var(--clr-text);
+  --text-2: var(--clr-text-muted);
+  --text-3: var(--clr-text-faint);
+  --green: var(--clr-green);
+  --red: var(--clr-red);
+  --blue: var(--clr-blue);
+  --yellow: var(--c-pending);
   --font-display: 'Cabinet Grotesk', sans-serif;
   --font-body: 'Instrument Sans', sans-serif;
 }
@@ -85,7 +85,7 @@ const STYLES = `
 }
 .ch-portal::before {
   content: ''; position: fixed; inset: 0;
-  background: linear-gradient(160deg, rgba(8,12,20,.92) 0%, rgba(8,12,20,.80) 50%, rgba(8,12,20,.94) 100%);
+  background: linear-gradient(160deg, var(--citizen-scrim) 0%, color-mix(in srgb, var(--citizen-scrim) 82%, transparent) 50%, var(--citizen-scrim) 100%);
   pointer-events: none; z-index: 1;
 }
 
@@ -564,8 +564,8 @@ export default function CitizenHistory() {
                                     className="ch-row-type"
                                     style={{
                                       color: tm.color,
-                                      background: `${tm.color}12`,
-                                      border: `1px solid ${tm.color}25`,
+                                      background: `color-mix(in srgb, ${tm.color} 14%, transparent)`,
+                                      border: `1px solid color-mix(in srgb, ${tm.color} 32%, transparent)`,
                                     }}
                                   >
                                     {typeLabel(r.type)}

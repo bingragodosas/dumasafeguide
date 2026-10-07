@@ -19,6 +19,12 @@ interface Hospital {
 }
 interface Barangay { name: string; hotline: string | null; evacuation: string | null; }
 
+// Theme-aware accent text: mixes any brand hex 68/32 toward the theme text
+// color, so cyan/yellow/lavender accents stay vivid on dark navy yet turn
+// deep and readable on light cards. (Raw hex is kept for translucent fills,
+// where the `18`/`55` suffix trick requires a real hex value.)
+const themeAccent = (hex: string) => `color-mix(in srgb, ${hex} 68%, var(--clr-text))`;
+
 const emergency: EmergencyAgency[] = [
   { agency: "PNP", label: "Police", address: "Camp Leon Kilat, Dumaguete City", icon: "🚔", accent: "#4A90D9",
     category: "lawEnforcement",
@@ -172,14 +178,14 @@ export default function CitizenDirectory() {
 
         {/* Header */}
         <div style={{ marginBottom: "28px" }}>
-          <div style={{ fontSize: "10px", color: "#4A90D9", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "8px", fontWeight: "700" }}>● {t("directory.hero.line1")} <span style={{ color: "#4A90D9" }}>{t("directory.hero.line1Accent")}</span></div>
-          <h1 style={{ fontSize: "34px", fontWeight: "900", color: "#eef0f7", marginBottom: "6px" }}>{t("directory.hero.line2")} <span style={{ color: "#4A90D9" }}>{t("directory.hero.line2Accent")}</span></h1>
-          <p style={{ fontSize: "12px", color: "rgba(238,240,247,0.35)", letterSpacing: "0.06em" }}>{t("directory.hero.sub")}</p>
+          <div style={{ fontSize: "10px", color: "var(--c-progress)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "8px", fontWeight: "700" }}>● {t("directory.hero.line1")} <span style={{ color: "var(--c-progress)" }}>{t("directory.hero.line1Accent")}</span></div>
+          <h1 style={{ fontSize: "34px", fontWeight: "900", color: "var(--clr-text)", marginBottom: "6px" }}>{t("directory.hero.line2")} <span style={{ color: "var(--c-progress)" }}>{t("directory.hero.line2Accent")}</span></h1>
+          <p style={{ fontSize: "12px", color: "var(--citizen-faint)", letterSpacing: "0.06em" }}>{t("directory.hero.sub")}</p>
         </div>
 
         {/* 911 Banner */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", backgroundColor: "rgba(232,55,42,0.08)", border: "1px solid rgba(232,55,42,0.3)", borderRadius: "10px", padding: "14px 18px", marginBottom: "24px" }}>
-          <span style={{ fontSize: "11px", fontWeight: "700", color: "#ff8a80", letterSpacing: "0.12em" }}>{t("directory.banner.label")}</span>
+          <span style={{ fontSize: "11px", fontWeight: "800", color: themeAccent("#ff8a80"), letterSpacing: "0.12em" }}>{t("directory.banner.label")}</span>
           {[
             [t("directory.banner.allEmergencies"), "911"],
             [t("directory.banner.pnpPolice"), "116"],
@@ -187,8 +193,8 @@ export default function CitizenDirectory() {
             [t("directory.banner.cdrrmo"), "0936 795 4163"],
             [t("directory.banner.oneRescue"), "0905 518 6917"],
           ].map(([lbl, num]) => (
-            <a key={num} href={`tel:${cleanPhone(num)}`} style={{ display: "inline-flex", alignItems: "center", gap: "5px", backgroundColor: "rgba(232,55,42,0.1)", border: "1px solid rgba(232,55,42,0.3)", borderRadius: "20px", padding: "6px 13px", fontSize: "12px", fontWeight: "500", color: "#eef0f7", textDecoration: "none" }}>
-              📞 {num} <span style={{ color: "rgba(238,240,247,0.4)", fontSize: "10px" }}>— {lbl}</span>
+            <a key={num} href={`tel:${cleanPhone(num)}`} style={{ display: "inline-flex", alignItems: "center", gap: "5px", backgroundColor: "rgba(232,55,42,0.1)", border: "1px solid rgba(232,55,42,0.3)", borderRadius: "20px", padding: "6px 13px", fontSize: "12px", fontWeight: "500", color: "var(--clr-text)", textDecoration: "none" }}>
+              📞 {num} <span style={{ color: "var(--citizen-faint)", fontSize: "10px" }}>— {lbl}</span>
             </a>
           ))}
         </div>
@@ -197,9 +203,9 @@ export default function CitizenDirectory() {
         <div style={{ display: "flex", gap: "6px", marginBottom: "20px" }}>
           {(["emergency","hospitals","barangays"] as const).map((tabName) => (
             <button key={tabName} onClick={() => setTab(tabName)} style={{ padding: "8px 18px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", letterSpacing: "0.10em", textTransform: "uppercase", cursor: "pointer", border: "1px solid", transition: "all 0.2s",
-              backgroundColor: tab === tabName ? "rgba(74,144,217,0.15)" : "rgba(255,255,255,0.03)",
-              color:           tab === tabName ? "#4A90D9"               : "rgba(238,240,247,0.35)",
-              borderColor:     tab === tabName ? "rgba(74,144,217,0.4)"  : "rgba(255,255,255,0.07)",
+              backgroundColor: tab === tabName ? "rgba(74,144,217,0.15)" : "var(--clr-surface-2)",
+              color:           tab === tabName ? "var(--c-progress)"      : "var(--citizen-body)",
+              borderColor:     tab === tabName ? "rgba(74,144,217,0.4)"  : "var(--clr-border)",
             }}>
               {tabName === "emergency" ? `🚨 ${t("directory.emergency.title")}` : tabName === "hospitals" ? `🏥 ${t("directory.hospitals.title")}` : `🏘️ ${t("directory.barangays.title")}`}
             </button>
@@ -216,10 +222,10 @@ export default function CitizenDirectory() {
                 <button
                   key={c}
                   onClick={() => setCatFilter(c)}
-                  style={{ padding: "6px 14px", borderRadius: "20px", fontSize: "11px", fontWeight: "500", letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", border: "1px solid", transition: "all 0.18s",
-                    backgroundColor: catFilter === c ? "rgba(74,144,217,0.15)" : "rgba(255,255,255,0.03)",
-                    color:           catFilter === c ? "#4A90D9"               : "rgba(238,240,247,0.35)",
-                    borderColor:     catFilter === c ? "rgba(74,144,217,0.4)"  : "rgba(255,255,255,0.07)",
+                  style={{ padding: "6px 14px", borderRadius: "20px", fontSize: "11px", fontWeight: "600", letterSpacing: "0.07em", textTransform: "uppercase", cursor: "pointer", border: "1px solid", transition: "all 0.18s",
+                    backgroundColor: catFilter === c ? "rgba(74,144,217,0.15)" : "var(--clr-surface-2)",
+                    color:           catFilter === c ? "var(--c-progress)"      : "var(--citizen-body)",
+                    borderColor:     catFilter === c ? "rgba(74,144,217,0.4)"  : "var(--clr-border)",
                   }}
                 >
                   {categoryLabel(c)}
@@ -235,31 +241,31 @@ export default function CitizenDirectory() {
                 ? t(`${item.translationKey}.description`, item.notes ?? "")
                 : (language === "tl" ? (AGENCY_NOTES_TL[ei] ?? item.notes) : item.notes);
               return (
-              <div key={item.agency} style={{ backgroundColor: "rgba(15,21,33,0.82)", border: `1px solid rgba(255,255,255,0.07)`, borderTop: `2px solid ${item.accent}`, borderRadius: "14px", padding: "20px", transition: "all 0.2s" }}>
+              <div key={item.agency} style={{ backgroundColor: "var(--citizen-card)", border: `1px solid var(--clr-border)`, borderTop: `2px solid ${item.accent}`, borderRadius: "14px", padding: "20px", transition: "all 0.2s" }}>
                 <div style={{ fontSize: "24px", marginBottom: "8px" }}>{item.icon}</div>
-                <div style={{ fontSize: "18px", fontWeight: "900", color: item.accent, marginBottom: "2px" }}>{agencyName}</div>
-                <div style={{ fontSize: "10px", color: "rgba(238,240,247,0.35)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>{agencyLabel}</div>
+                <div style={{ fontSize: "18px", fontWeight: "900", color: themeAccent(item.accent), marginBottom: "2px" }}>{agencyName}</div>
+                <div style={{ fontSize: "10px", color: "var(--clr-text-muted)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "14px" }}>{agencyLabel}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "12px" }}>
                   {item.phones.map((p, i) => {
                     const isHotline = /^\d{2,3}$/.test(p.number.trim());
                     const isMobile  = p.number.startsWith("09");
                     return (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{p.label}</span>
-                        <a href={`tel:${cleanPhone(p.number)}`} style={{ fontSize: isHotline ? "16px" : "13px", fontWeight: isHotline ? "800" : "500", color: isHotline ? "#ff8a80" : isMobile ? item.accent : "rgba(238,240,247,0.7)", textDecoration: "none" }}>
+                        <span style={{ fontSize: "10px", color: "var(--clr-text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{p.label}</span>
+                        <a href={`tel:${cleanPhone(p.number)}`} style={{ fontSize: isHotline ? "16px" : "13px", fontWeight: isHotline ? "800" : "500", color: isHotline ? themeAccent("#ff8a80") : isMobile ? themeAccent(item.accent) : "var(--citizen-body)", textDecoration: "none" }}>
                           {p.number}
                         </a>
                       </div>
                     );
                   })}
                 </div>
-                {agencyNotes && <p style={{ fontSize: "11px", color: "rgba(238,240,247,0.28)", lineHeight: "1.5", marginBottom: "12px" }}>{agencyNotes}</p>}
-                {item.available && <p style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.10em", color: "#2ECC8F", marginBottom: "12px" }}>🕒 {t(`directory.hours.${item.available}`, item.available)}</p>}
+                {agencyNotes && <p style={{ fontSize: "11px", color: "var(--clr-text-muted)", lineHeight: "1.5", marginBottom: "12px" }}>{agencyNotes}</p>}
+                {item.available && <p style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.10em", color: "var(--clr-green)", marginBottom: "12px" }}>🕒 {t(`directory.hours.${item.available}`, item.available)}</p>}
                 <div style={{ display: "flex", gap: "6px" }}>
-                  <a href={`tel:${cleanPhone(item.phones[0].number)}`} style={{ flex: 1, textAlign: "center", padding: "8px", backgroundColor: `${item.accent}18`, border: `1px solid ${item.accent}55`, borderRadius: "8px", fontSize: "11px", fontWeight: "700", color: item.accent, textDecoration: "none" }}>
+                  <a href={`tel:${cleanPhone(item.phones[0].number)}`} style={{ flex: 1, textAlign: "center", padding: "8px", backgroundColor: `${item.accent}18`, border: `1px solid ${item.accent}55`, borderRadius: "8px", fontSize: "11px", fontWeight: "700", color: themeAccent(item.accent), textDecoration: "none" }}>
                     📞 {t("directory.actions.callNow")}
                   </a>
-                  <button onClick={() => openMaps(`${item.agency} ${item.address}`)} style={{ padding: "8px 12px", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", fontSize: "11px", color: "rgba(238,240,247,0.35)", cursor: "pointer" }}>
+                  <button onClick={() => openMaps(`${item.agency} ${item.address}`)} style={{ padding: "8px 12px", backgroundColor: "var(--clr-surface-2)", border: "1px solid var(--clr-border)", borderRadius: "8px", fontSize: "11px", fontWeight: "600", color: "var(--citizen-body)", cursor: "pointer" }}>
                     📍 {t("directory.actions.map")}
                   </button>
                 </div>
@@ -276,27 +282,27 @@ export default function CitizenDirectory() {
             {hospitals.map((h, hi) => {
               const isGov = h.type.includes("Government") || h.type.includes("Gobyerno");
               return (
-                <div key={h.name} style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "20px" }}>
+                <div key={h.name} style={{ backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderRadius: "14px", padding: "20px" }}>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: isGov ? "#4A90D9" : "#2ECC8F", border: `1px solid ${isGov ? "rgba(74,144,217,0.3)" : "rgba(46,204,143,0.3)"}`, borderRadius: "4px", padding: "3px 7px" }}>
+                    <span style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: isGov ? "var(--c-progress)" : "var(--clr-green)", border: `1px solid ${isGov ? "var(--clr-blue-border)" : "var(--clr-green-border)"}`, borderRadius: "4px", padding: "3px 7px" }}>
                       {isGov ? t("directory.hospitals.government") : t("directory.hospitals.private")}
                     </span>
-                    {h.beds && <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.28)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "4px", padding: "3px 7px" }}>🛏 {h.beds}</span>}
+                    {h.beds && <span style={{ fontSize: "9px", color: "var(--clr-text-faint)", border: "1px solid var(--clr-border)", borderRadius: "4px", padding: "3px 7px" }}>🛏 {h.beds}</span>}
                   </div>
-                  <div style={{ fontSize: "15px", fontWeight: "800", color: "#eef0f7", marginBottom: "4px", lineHeight: "1.3" }}>{h.name}</div>
-                  <div style={{ fontSize: "11px", color: "rgba(238,240,247,0.28)", marginBottom: "14px" }}>📍 {h.address}</div>
+                  <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--clr-text)", marginBottom: "4px", lineHeight: "1.3" }}>{h.name}</div>
+                  <div style={{ fontSize: "11px", color: "var(--clr-text-faint)", marginBottom: "14px" }}>📍 {h.address}</div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "12px" }}>
                     {h.phones.map((p, i) => (
                       <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{p.label}</span>
-                        <a href={`tel:${cleanPhone(p.number)}`} style={{ fontSize: "13px", fontWeight: "500", color: p.number.startsWith("09") ? "#4A90D9" : "rgba(238,240,247,0.7)", textDecoration: "none" }}>{p.number}</a>
+                        <span style={{ fontSize: "10px", color: "var(--clr-text-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{p.label}</span>
+                        <a href={`tel:${cleanPhone(p.number)}`} style={{ fontSize: "13px", fontWeight: "500", color: p.number.startsWith("09") ? "var(--c-progress)" : "var(--citizen-body)", textDecoration: "none" }}>{p.number}</a>
                       </div>
                     ))}
                   </div>
-                  {h.notes && <p style={{ fontSize: "11px", color: "rgba(238,240,247,0.28)", lineHeight: "1.5", marginBottom: "12px" }}>{language === "tl" ? (HOSPITAL_NOTES_TL[hi] ?? h.notes) : h.notes}</p>}
+                  {h.notes && <p style={{ fontSize: "11px", color: "var(--clr-text-faint)", lineHeight: "1.5", marginBottom: "12px" }}>{language === "tl" ? (HOSPITAL_NOTES_TL[hi] ?? h.notes) : h.notes}</p>}
                   <div style={{ display: "flex", gap: "6px" }}>
-                    <a href={`tel:${cleanPhone(h.phones[0].number)}`} style={{ flex: 1, textAlign: "center", padding: "8px", backgroundColor: "rgba(74,144,217,0.1)", border: "1px solid rgba(74,144,217,0.3)", borderRadius: "8px", fontSize: "11px", fontWeight: "700", color: "#4A90D9", textDecoration: "none" }}>📞 {t("directory.actions.call")}</a>
-                    <button onClick={() => openMaps(`${h.name} Dumaguete`)} style={{ padding: "8px 12px", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "8px", fontSize: "11px", color: "rgba(238,240,247,0.35)", cursor: "pointer" }}>📍 {t("directory.actions.map")}</button>
+                    <a href={`tel:${cleanPhone(h.phones[0].number)}`} style={{ flex: 1, textAlign: "center", padding: "8px", backgroundColor: "var(--clr-blue-bg)", border: "1px solid var(--clr-blue-border)", borderRadius: "8px", fontSize: "11px", fontWeight: "700", color: "var(--c-progress)", textDecoration: "none" }}>📞 {t("directory.actions.call")}</a>
+                    <button onClick={() => openMaps(`${h.name} Dumaguete`)} style={{ padding: "8px 12px", backgroundColor: "var(--clr-surface-2)", border: "1px solid var(--clr-border)", borderRadius: "8px", fontSize: "11px", fontWeight: "600", color: "var(--citizen-body)", cursor: "pointer" }}>📍 {t("directory.actions.map")}</button>
                   </div>
                 </div>
               );
@@ -314,39 +320,39 @@ export default function CitizenDirectory() {
                 value={bgySearch}
                 onChange={e => setBgySearch(e.target.value)}
                 placeholder={t("directory.barangays.searchPlaceholder")}
-                style={{ width: "100%", backgroundColor: "rgba(8,12,20,0.9)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "10px", padding: "11px 36px 11px 36px", fontSize: "13px", color: "#eef0f7", outline: "none", fontFamily: "inherit" }}
+                style={{ width: "100%", backgroundColor: "var(--citizen-rail)", border: "1px solid var(--clr-border)", borderRadius: "10px", padding: "11px 36px 11px 36px", fontSize: "13px", color: "var(--clr-text)", outline: "none", fontFamily: "inherit" }}
               />
               {bgySearch && (
-                <button onClick={() => setBgySearch("")} aria-label={language === "tl" ? "I-clear ang paghahanap" : "Clear search"} style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "rgba(238,240,247,0.35)", fontSize: "18px", cursor: "pointer" }}>×</button>
+                <button onClick={() => setBgySearch("")} aria-label={language === "tl" ? "I-clear ang paghahanap" : "Clear search"} style={{ position: "absolute", right: "11px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--citizen-faint)", fontSize: "18px", cursor: "pointer" }}>×</button>
               )}
             </div>
             <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
               {[
-                { label: `${barangays.filter(b => b.hotline).length} ${t("directory.barangays.withHotlines")}`,        color: "#4A90D9" },
-                { label: `${barangays.filter(b => b.evacuation).length} ${t("directory.barangays.withEvac")}`,   color: "#2ECC8F" },
-                { label: `${barangays.filter(b => !b.hotline).length} ${t("directory.barangays.noHotline")}`,   color: "rgba(238,240,247,0.28)" },
+                { label: `${barangays.filter(b => b.hotline).length} ${t("directory.barangays.withHotlines")}`,        color: "var(--c-progress)" },
+                { label: `${barangays.filter(b => b.evacuation).length} ${t("directory.barangays.withEvac")}`,   color: "var(--clr-green)" },
+                { label: `${barangays.filter(b => !b.hotline).length} ${t("directory.barangays.noHotline")}`,   color: "var(--clr-text-faint)" },
               ].map(s => (
-                <span key={s.label} style={{ fontSize: "11px", color: s.color, backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "6px", padding: "4px 10px" }}>{s.label}</span>
+                <span key={s.label} style={{ fontSize: "11px", color: s.color, backgroundColor: "var(--clr-surface-2)", border: "1px solid var(--clr-border)", borderRadius: "6px", padding: "4px 10px" }}>{s.label}</span>
               ))}
             </div>
             {filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "48px", color: "rgba(238,240,247,0.28)", fontSize: "13px" }}>{t("directory.barangays.emptyText")}</div>
+              <div style={{ textAlign: "center", padding: "48px", color: "var(--clr-text-faint)", fontSize: "13px" }}>{t("directory.barangays.emptyText")}</div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
                 {filtered.map(b => (
-                  <div key={b.name} style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "14px" }}>
-                    <div style={{ fontSize: "13px", fontWeight: "800", color: "#eef0f7", marginBottom: "8px" }}>{b.name}</div>
+                  <div key={b.name} style={{ backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderRadius: "12px", padding: "14px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: "800", color: "var(--clr-text)", marginBottom: "8px" }}>{b.name}</div>
                     <div style={{ display: "flex", gap: "4px", marginBottom: "8px", flexWrap: "wrap" }}>
-                      {b.hotline    && <span style={{ fontSize: "8px", fontWeight: "700", letterSpacing: "0.10em", color: "#4A90D9", border: "1px solid rgba(74,144,217,0.25)", borderRadius: "3px", padding: "2px 6px" }}>📞 {t("directory.barangays.hotlineBadge")}</span>}
-                      {b.evacuation && <span style={{ fontSize: "8px", fontWeight: "700", letterSpacing: "0.10em", color: "#2ECC8F", border: "1px solid rgba(46,204,143,0.25)", borderRadius: "3px", padding: "2px 6px" }}>🏫 {t("directory.barangays.evacBadge")}</span>}
-                      {!b.hotline && !b.evacuation && <span style={{ fontSize: "8px", color: "rgba(238,240,247,0.28)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "3px", padding: "2px 6px" }}>{t("directory.barangays.tbdBadge")}</span>}
+                      {b.hotline    && <span style={{ fontSize: "8px", fontWeight: "700", letterSpacing: "0.10em", color: "var(--c-progress)", border: "1px solid var(--clr-blue-border)", borderRadius: "3px", padding: "2px 6px" }}>📞 {t("directory.barangays.hotlineBadge")}</span>}
+                      {b.evacuation && <span style={{ fontSize: "8px", fontWeight: "700", letterSpacing: "0.10em", color: "var(--clr-green)", border: "1px solid var(--clr-green-border)", borderRadius: "3px", padding: "2px 6px" }}>🏫 {t("directory.barangays.evacBadge")}</span>}
+                      {!b.hotline && !b.evacuation && <span style={{ fontSize: "8px", color: "var(--clr-text-faint)", border: "1px solid var(--clr-border)", borderRadius: "3px", padding: "2px 6px" }}>{t("directory.barangays.tbdBadge")}</span>}
                     </div>
                     {b.hotline
-                      ? <a href={`tel:${cleanPhone(b.hotline.split("/")[0].trim())}`} style={{ fontSize: "12px", fontWeight: "600", color: "#4A90D9", textDecoration: "none", display: "block", marginBottom: "5px" }}>{b.hotline}</a>
-                      : <p style={{ fontSize: "11px", color: "rgba(238,240,247,0.28)", marginBottom: "5px" }}>{t("directory.barangays.noDirectPrefix")} <a href="tel:911" style={{ color: "#ff8a80", textDecoration: "none" }}>911</a> {t("directory.barangays.orCdrrmo")} <a href="tel:09367954163" style={{ color: "#4A90D9", textDecoration: "none" }}>CDRRMO</a></p>
+                      ? <a href={`tel:${cleanPhone(b.hotline.split("/")[0].trim())}`} style={{ fontSize: "12px", fontWeight: "600", color: "var(--c-progress)", textDecoration: "none", display: "block", marginBottom: "5px" }}>{b.hotline}</a>
+                      : <p style={{ fontSize: "11px", color: "var(--clr-text-faint)", marginBottom: "5px" }}>{t("directory.barangays.noDirectPrefix")} <a href="tel:911" style={{ color: "var(--clr-red)", textDecoration: "none" }}>911</a> {t("directory.barangays.orCdrrmo")} <a href="tel:09367954163" style={{ color: "var(--c-progress)", textDecoration: "none" }}>CDRRMO</a></p>
                     }
-                    {b.evacuation && <p style={{ fontSize: "10px", color: "rgba(238,240,247,0.35)", lineHeight: "1.4", marginBottom: "8px" }}>🏫 {b.evacuation}</p>}
-                    <button onClick={() => openMaps(`${b.name} Barangay Dumaguete City`)} style={{ fontSize: "10px", fontWeight: "600", color: "rgba(238,240,247,0.35)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{t("directory.barangays.navigate")} →</button>
+                    {b.evacuation && <p style={{ fontSize: "10px", color: "var(--citizen-faint)", lineHeight: "1.4", marginBottom: "8px" }}>🏫 {b.evacuation}</p>}
+                    <button onClick={() => openMaps(`${b.name} Barangay Dumaguete City`)} style={{ fontSize: "10px", fontWeight: "600", color: "var(--citizen-faint)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>{t("directory.barangays.navigate")} →</button>
                   </div>
                 ))}
               </div>

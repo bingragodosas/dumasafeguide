@@ -14,10 +14,23 @@ import { useWebRTC } from "../../hooks/useWebRTC";
 import CallOverlay from "../../components/CallOverlay";
 import { FaPhone, FaVideo, FaSearch } from "react-icons/fa";
 import { usePresence } from "../../hooks/usePresence";
+import pagesBackground from "../../assets/pagesbackground.png";
 
 // 🔒 CENTRALIZED: admin hidden from citizen chat per professor toggle — code retained below
 // Set to false to show admin contacts again if required by professor
 const HIDE_ADMIN_FOR_CITIZEN = true;
+
+// Shared cinematic photo backdrop (same as Pag-report og Insidente) — the
+// scrim var keeps it theme-aware in every branch below.
+const CHAT_PAGE_BG = {
+  minHeight: "100vh",
+  backgroundImage: `linear-gradient(var(--citizen-scrim), var(--citizen-scrim)), url(${pagesBackground})`,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundAttachment: "fixed",
+  backgroundRepeat: "no-repeat",
+  backgroundColor: "var(--clr-bg)",
+} as const;
 
 interface ResponderContact {
   id: string;
@@ -238,7 +251,7 @@ export default function CitizenChatPage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", color: "rgba(238,240,247,0.35)", fontSize: "13px", fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ ...CHAT_PAGE_BG, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--citizen-faint)", fontSize: "13px", fontFamily: "'Inter', sans-serif" }}>
         <div style={{ textAlign: "center" }}><div style={{ marginBottom: "12px", fontSize: "24px" }}>🔒</div>{t("chat.loading", "Loading chat...")}</div>
       </div>
     );
@@ -246,10 +259,11 @@ export default function CitizenChatPage() {
 
   if (authError) {
     return (
-      <div style={{ padding: "24px", maxWidth: "600px", margin: "40px auto", background: "rgba(15,21,33,0.82)", border: "1px solid rgba(239,91,91,0.2)", borderRadius: "12px", textAlign: "center" }}>
+      <div style={{ ...CHAT_PAGE_BG, padding: "24px" }}>
+      <div style={{ maxWidth: "600px", margin: "40px auto", background: "var(--citizen-card)", border: "1px solid var(--clr-red-border)", borderRadius: "12px", textAlign: "center", padding: "24px" }}>
         <div style={{ fontSize: "32px", marginBottom: "12px" }}>⚠️</div>
-        <div style={{ fontSize: "14px", fontWeight: "700", color: "#eef0f7", marginBottom: "8px" }}>{authError}</div>
-        <div style={{ fontSize: "12px", color: "rgba(238,240,247,0.55)", marginBottom: "16px" }}>
+        <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--clr-text)", marginBottom: "8px" }}>{authError}</div>
+        <div style={{ fontSize: "12px", color: "var(--clr-text-muted)", marginBottom: "16px" }}>
           Your session has expired or is invalid (Invalid Refresh Token). Please clear and sign in again.
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
@@ -262,48 +276,53 @@ export default function CitizenChatPage() {
               window.location.hash = '#/login';
               window.location.reload();
             }}
-            style={{ background: "#2ECC8F", border: "none", color: "#0a1a14", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
+            style={{ background: "var(--clr-green)", border: "none", color: "#0a1a14", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
           >
             Clear & Go to Login
           </button>
           <button
             onClick={() => window.location.reload()}
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#eef0f7", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
+            style={{ background: "var(--clr-border)", border: "1px solid var(--clr-border-2)", color: "var(--clr-text)", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
           >
             Retry
           </button>
         </div>
+      </div>
       </div>
     );
   }
 
   if (roleMismatch) {
     return (
-      <div style={{ padding: "24px", maxWidth: "600px", margin: "40px auto", background: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", textAlign: "center" }}>
+      <div style={{ ...CHAT_PAGE_BG, padding: "24px" }}>
+      <div style={{ maxWidth: "600px", margin: "40px auto", background: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderRadius: "12px", textAlign: "center", padding: "24px" }}>
         <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔒</div>
-        <div style={{ fontSize: "14px", fontWeight: "700", color: "#eef0f7", marginBottom: "8px" }}>Responder account — citizen chat is for citizens</div>
-        <div style={{ fontSize: "12px", color: "rgba(238,240,247,0.55)", marginBottom: "16px" }}>
+        <div style={{ fontSize: "14px", fontWeight: "700", color: "var(--clr-text)", marginBottom: "8px" }}>Responder account — citizen chat is for citizens</div>
+        <div style={{ fontSize: "12px", color: "var(--clr-text-muted)", marginBottom: "16px" }}>
           You are logged in as a <strong>responder</strong>. Citizen Chat is only available to citizen accounts.
           Use <strong>Citizen Chat</strong> in your Responder Dashboard to message citizens who are online.
         </div>
         <button
           onClick={() => navigate("/responder/dashboard")}
-          style={{ background: "rgba(46,204,143,0.16)", border: "1px solid rgba(46,204,143,0.35)", color: "#2ECC8F", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
+          style={{ background: "rgba(46,204,143,0.16)", border: "1px solid rgba(46,204,143,0.35)", color: "var(--clr-green)", borderRadius: "8px", padding: "10px 18px", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}
         >
           Go to Responder Dashboard
         </button>
+      </div>
       </div>
     );
   }
 
   if (noResponder && responders.length === 0) {
     return (
-      <div style={{ padding: "20px", maxWidth: "700px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "16px", padding: "14px 18px", backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(239,91,91,0.2)", borderRadius: "12px", borderLeft: "3px solid #EF5B5B" }}>
-          <div style={{ fontSize: "10px", color: "#EF5B5B", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px" }}>{t("chat.noResponder", "No Responders Online")}</div>
-          <div style={{ fontSize: "13px", color: "rgba(238,240,247,0.65)" }}>No responders online right now. Your message will be queued and the next available responder will assist you. Please try again shortly.</div>
+      <div style={{ ...CHAT_PAGE_BG, padding: "20px" }}>
+      <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+        <div style={{ marginBottom: "16px", padding: "14px 18px", backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-red-border)", borderRadius: "12px", borderLeft: "3px solid var(--clr-red)" }}>
+          <div style={{ fontSize: "10px", color: "var(--clr-red)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px" }}>{t("chat.noResponder", "No Responders Online")}</div>
+          <div style={{ fontSize: "13px", color: "var(--citizen-body)" }}>No responders online right now. Your message will be queued and the next available responder will assist you. Please try again shortly.</div>
         </div>
         {/* Still allow queuing — show chat disabled but with responders list empty */}
+      </div>
       </div>
     );
   }
@@ -315,78 +334,82 @@ export default function CitizenChatPage() {
   const showAssignedSection = !!assignedResponderId;
 
   return (
-    <div style={{ padding: "clamp(12px,3vw,20px)", maxWidth: "min(700px, calc(100vw - 24px))", margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
+    // Same cinematic photo backdrop as Pag-report og Insidente — scrim var
+    // keeps it theme-aware (dark veil in dark mode, soft gray in light).
+    <div style={{ ...CHAT_PAGE_BG, padding: "clamp(12px,3vw,20px)" }}>
+    <div style={{ maxWidth: "min(700px, calc(100vw - 24px))", margin: "0 auto", width: "100%", boxSizing: "border-box", borderRadius: "18px",
+      backgroundImage: "radial-gradient(560px 260px at 15% 0%, color-mix(in srgb, var(--clr-green) 9%, transparent), transparent), radial-gradient(480px 280px at 95% 100%, color-mix(in srgb, var(--clr-blue) 9%, transparent), transparent)" }}>
       <div style={{
         marginBottom: "16px", padding: "14px 18px",
-        backgroundColor: "rgba(15,21,33,0.82)",
+        backgroundColor: "var(--citizen-card)",
         border: "1px solid rgba(46,204,143,0.15)",
-        borderRadius: "12px", borderLeft: "3px solid #2ECC8F",
+        borderRadius: "12px", borderLeft: "3px solid var(--clr-green)",
         display: "flex", alignItems: "center", gap: "12px",
       }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "10px", color: "#2ECC8F", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px" }}>{t("chat.secureChannel", "Secure Channel")}</div>
-          <div style={{ fontSize: "13px", color: "rgba(238,240,247,0.65)", fontWeight: "500" }}>
+          <div style={{ fontSize: "10px", color: "var(--clr-green)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "4px" }}>{t("chat.secureChannel", "Secure Channel")}</div>
+          <div style={{ fontSize: "13px", color: "var(--citizen-body)", fontWeight: "500" }}>
             Centralized: message any on-duty responder — chat, audio, or video. Responders online are highlighted and will respond to assist you.
           </div>
         </div>
         {effectiveResponderId && (
           <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-            <button onClick={handleStartAudioCall} title="Audio Call — responder will be notified" style={{ background: "rgba(46,204,143,0.12)", border: "1px solid rgba(46,204,143,0.3)", borderRadius: "8px", padding: "8px 10px", cursor: "pointer", color: "#2ECC8F", fontSize: "14px", display: "flex", alignItems: "center" }}><FaPhone size={14} /></button>
-            <button onClick={handleStartVideoCall} title="Video Call — responder will be notified" style={{ background: "rgba(46,204,143,0.12)", border: "1px solid rgba(46,204,143,0.3)", borderRadius: "8px", padding: "8px 10px", cursor: "pointer", color: "#2ECC8F", fontSize: "14px", display: "flex", alignItems: "center" }}><FaVideo size={14} /></button>
+            <button onClick={handleStartAudioCall} title="Audio Call — responder will be notified" style={{ background: "rgba(46,204,143,0.12)", border: "1px solid rgba(46,204,143,0.3)", borderRadius: "8px", padding: "8px 10px", cursor: "pointer", color: "var(--clr-green)", fontSize: "14px", display: "flex", alignItems: "center" }}><FaPhone size={14} /></button>
+            <button onClick={handleStartVideoCall} title="Video Call — responder will be notified" style={{ background: "rgba(46,204,143,0.12)", border: "1px solid rgba(46,204,143,0.3)", borderRadius: "8px", padding: "8px 10px", cursor: "pointer", color: "var(--clr-green)", fontSize: "14px", display: "flex", alignItems: "center" }}><FaVideo size={14} /></button>
           </div>
         )}
       </div>
 
       {showAssignedSection && assignedResponder && (
         <div style={{ marginBottom: "16px" }}>
-          <div style={{ fontSize: "10px", color: "#2ECC8F", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: "700", marginBottom: "8px" }}>Your assigned responder</div>
+          <div style={{ fontSize: "10px", color: "var(--clr-green)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: "700", marginBottom: "8px" }}>Your assigned responder</div>
           <button
             onClick={() => handleSelectResponder(assignedResponder)}
             style={{
               display: "flex", alignItems: "center", gap: "12px", width: "100%", textAlign: "left",
               padding: "12px 14px", borderRadius: "12px",
-              background: selectedResponderId === assignedResponder.id ? "rgba(46,204,143,0.10)" : "rgba(15,21,33,0.82)",
+              background: selectedResponderId === assignedResponder.id ? "rgba(46,204,143,0.10)" : "var(--citizen-card)",
               border: `1px solid ${selectedResponderId === assignedResponder.id ? "rgba(46,204,143,0.35)" : "rgba(46,204,143,0.18)"}`,
-              borderLeft: "3px solid #2ECC8F",
-              cursor: "pointer", color: "#eef0f7",
+              borderLeft: "3px solid var(--clr-green)",
+              cursor: "pointer", color: "var(--clr-text)",
             }}
           >
-            <span style={{ width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0, background: assignedResponderId && isOnline(assignedResponderId) ? "#2ECC8F" : "rgba(238,240,247,0.3)", boxShadow: assignedResponderId && isOnline(assignedResponderId) ? "0 0 6px #2ECC8F" : "none" }} />
+            <span style={{ width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0, background: assignedResponderId && isOnline(assignedResponderId) ? "var(--clr-green)" : "var(--clr-text-faint)", boxShadow: assignedResponderId && isOnline(assignedResponderId) ? "0 0 6px var(--clr-green)" : "none" }} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: "13px", fontWeight: "700", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{assignedResponder.full_name || assignedResponder.email || "Responder"} {selectedResponderId === assignedResponder.id ? "✓" : ""}</span>
-              <span style={{ display: "block", fontSize: "11px", color: assignedResponderId && isOnline(assignedResponderId) ? "rgba(46,204,143,0.8)" : "rgba(238,240,247,0.35)" }}>{assignedResponderId && isOnline(assignedResponderId) ? "Assigned to your active report • Tap to chat • Will take action to assist" : "Assigned to your active report • Currently offline"}</span>
+              <span style={{ display: "block", fontSize: "11px", color: assignedResponderId && isOnline(assignedResponderId) ? "var(--clr-green)" : "var(--citizen-faint)" }}>{assignedResponderId && isOnline(assignedResponderId) ? "Assigned to your active report • Tap to chat • Will take action to assist" : "Assigned to your active report • Currently offline"}</span>
             </span>
-            <span style={{ fontSize: "10px", color: "#2ECC8F", fontWeight: "700", letterSpacing: "0.06em" }}>PINNED</span>
+            <span style={{ fontSize: "10px", color: "var(--clr-green)", fontWeight: "700", letterSpacing: "0.06em" }}>PINNED</span>
           </button>
         </div>
       )}
 
-      <div style={{ marginBottom: "16px", backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", overflow: "hidden" }}>
-        <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: "10px", color: "rgba(238,240,247,0.5)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: "700", flex: 1 }}>
+      <div style={{ marginBottom: "16px", backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderRadius: "12px", overflow: "hidden" }}>
+        <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--clr-border)", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: "10px", color: "var(--citizen-faint)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: "700", flex: 1 }}>
             Responders {responders.length > 0 ? `(${onlineCount} online)` : ""}
           </span>
-          <span title={onlineCount > 0 ? `${onlineCount} responder(s) online` : "No responders online"} style={{ width: "8px", height: "8px", borderRadius: "50%", background: onlineCount > 0 ? "#2ECC8F" : "rgba(238,240,247,0.25)", boxShadow: onlineCount > 0 ? "0 0 6px #2ECC8F" : "none", display: "inline-block" }} />
+          <span title={onlineCount > 0 ? `${onlineCount} responder(s) online` : "No responders online"} style={{ width: "8px", height: "8px", borderRadius: "50%", background: onlineCount > 0 ? "var(--clr-green)" : "var(--clr-text-faint)", boxShadow: onlineCount > 0 ? "0 0 6px var(--clr-green)" : "none", display: "inline-block" }} />
           <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-            <FaSearch size={10} style={{ position: "absolute", left: 8, color: "rgba(238,240,247,0.35)" }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search responder" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "6px 8px 6px 24px", fontSize: 11, color: "#eef0f7", outline: "none", width: 130 }} />
+            <FaSearch size={10} style={{ position: "absolute", left: 8, color: "var(--citizen-faint)" }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search responder" style={{ background: "var(--clr-surface)", border: "1px solid var(--clr-border-2)", borderRadius: 8, padding: "6px 8px 6px 24px", fontSize: 11, color: "var(--clr-text)", outline: "none", width: 130 }} />
           </div>
         </div>
         {/* HIDDEN: Admin contacts for citizen — code retained, hidden via flag (set HIDE_ADMIN_FOR_CITIZEN=false to show) */}
         {!HIDE_ADMIN_FOR_CITIZEN && (
-          <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}>
-            <div style={{ fontSize: "10px", color: "rgba(238,240,247,0.4)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Admin contacts (hidden in production)</div>
-            <div style={{ fontSize: "11px", color: "rgba(238,240,247,0.35)" }}>Admin list would appear here when HIDE_ADMIN_FOR_CITIZEN=false</div>
+          <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--clr-border)", background: "color-mix(in srgb, var(--clr-text) 3%, transparent)" }}>
+            <div style={{ fontSize: "10px", color: "var(--citizen-faint)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Admin contacts (hidden in production)</div>
+            <div style={{ fontSize: "11px", color: "var(--citizen-faint)" }}>Admin list would appear here when HIDE_ADMIN_FOR_CITIZEN=false</div>
           </div>
         )}
         <div style={{ maxHeight: "220px", overflowY: "auto" }}>
           {onlineCount === 0 && filteredResponders.length > 0 && (
-            <div style={{ padding: "12px 14px", fontSize: "12px", color: "rgba(239,91,91,0.85)", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div style={{ padding: "12px 14px", fontSize: "12px", color: "rgba(239,91,91,0.85)", textAlign: "center", borderBottom: "1px solid var(--clr-border)" }}>
               No responders online right now — they will appear as Online below when available.
             </div>
           )}
           {filteredResponders.length === 0 && !showAssignedSection ? (
-            <div style={{ padding: "16px", fontSize: "12px", color: "rgba(238,240,247,0.4)", textAlign: "center" }}>No responders online right now — they appear here when on duty and online. Your report is still visible to dispatch.</div>
+            <div style={{ padding: "16px", fontSize: "12px", color: "var(--citizen-faint)", textAlign: "center" }}>No responders online right now — they appear here when on duty and online. Your report is still visible to dispatch.</div>
           ) : (
             <>
               {otherResponders.map(r => {
@@ -400,24 +423,24 @@ export default function CitizenChatPage() {
                     title={online ? `Chat with ${r.full_name || r.email}` : "Responder is offline"}
                     style={{
                       display: "flex", alignItems: "center", gap: "10px", width: "100%", textAlign: "left",
-                      padding: "10px 14px", cursor: online ? "pointer" : "not-allowed", color: "#eef0f7",
+                      padding: "10px 14px", cursor: online ? "pointer" : "not-allowed", color: "var(--clr-text)",
                       opacity: online ? 1 : 0.45,
                       background: isSelected ? "rgba(46,204,143,0.08)" : "transparent",
-                      border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)",
-                      borderLeft: isSelected ? "2px solid #2ECC8F" : "2px solid transparent",
+                      border: "none", borderBottom: "1px solid var(--clr-border)",
+                      borderLeft: isSelected ? "2px solid var(--clr-green)" : "2px solid transparent",
                     }}
                   >
-                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0, background: online ? "#2ECC8F" : "rgba(238,240,247,0.3)", boxShadow: online ? "0 0 6px #2ECC8F" : "none" }} />
+                    <span style={{ width: "10px", height: "10px", borderRadius: "50%", flexShrink: 0, background: online ? "var(--clr-green)" : "var(--clr-text-faint)", boxShadow: online ? "0 0 6px var(--clr-green)" : "none" }} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: "13px", fontWeight: "600", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.full_name || r.email || "Responder"}</span>
-                      <span style={{ display: "block", fontSize: "11px", color: online ? "rgba(46,204,143,0.8)" : "rgba(238,240,247,0.35)" }}>{online ? "● Online • Chat · Audio · Video • Will respond" : "○ Offline"}</span>
+                      <span style={{ display: "block", fontSize: "11px", color: online ? "var(--clr-green)" : "var(--citizen-faint)" }}>{online ? "● Online • Chat · Audio · Video • Will respond" : "○ Offline"}</span>
                     </span>
-                    {isSelected && <span style={{ fontSize: "12px", color: "#2ECC8F" }}>✓</span>}
+                    {isSelected && <span style={{ fontSize: "12px", color: "var(--clr-green)" }}>✓</span>}
                   </button>
                 );
               })}
               {otherResponders.length === 0 && showAssignedSection && filteredResponders.length > 0 && (
-                <div style={{ padding: "12px 14px", fontSize: "11px", color: "rgba(238,240,247,0.35)", textAlign: "center" }}>No other on-duty responders. Your assigned responder is pinned above.</div>
+                <div style={{ padding: "12px 14px", fontSize: "11px", color: "var(--citizen-faint)", textAlign: "center" }}>No other on-duty responders. Your assigned responder is pinned above.</div>
               )}
             </>
           )}
@@ -427,7 +450,7 @@ export default function CitizenChatPage() {
       {effectiveResponderId ? (
         <ChatBox assignedResponderId={effectiveResponderId} incidentId={effectiveIncidentId} userRole="citizen" />
       ) : (
-        <div style={{ textAlign: "center", padding: "24px", color: "rgba(238,240,247,0.4)", fontSize: "12px", background: "rgba(15,21,33,0.6)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ textAlign: "center", padding: "24px", color: "var(--citizen-faint)", fontSize: "12px", background: "var(--citizen-card)", borderRadius: "12px", border: "1px solid var(--clr-border)" }}>
           Select a responder above to start chatting — audio and video calls are available.
         </div>
       )}
@@ -446,6 +469,7 @@ export default function CitizenChatPage() {
           isOnline={callState.callState === "active" ? true : !!effectiveResponderId && isOnline(effectiveResponderId)}
         />
       )}
+    </div>
     </div>
   );
 }

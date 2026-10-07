@@ -16,10 +16,10 @@ const INCIDENT_TYPES = [
 ];
 
 const EMERGENCY_HOTLINES = [
-  { label: "BFP",    number: "422-2022", icon: "🔥", color: "#FF6B6B" },
-  { label: "CDRRMO", number: "422-3008", icon: "🌀", color: "#FFD166" },
-  { label: "PNP",    number: "422-8708", icon: "👮", color: "#7B9EFF" },
-  { label: "PDRRMO", number: "422-3006", icon: "🏥", color: "#2ECC8F" },
+  { label: "BFP",    number: "422-2022", icon: "🔥", color: "var(--c-fire)" },
+  { label: "CDRRMO", number: "422-3008", icon: "🌀", color: "var(--c-pending)" },
+  { label: "PNP",    number: "422-8708", icon: "👮", color: "var(--c-progress)" },
+  { label: "PDRRMO", number: "422-3006", icon: "🏥", color: "var(--c-resolved)" },
 ];
 
 const STEPS = ["Incident Type", "Reporter Info", "Location", "Description", "Evidence", "Submit"];
@@ -72,7 +72,7 @@ const CSS = `
   }
   @keyframes cr-pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.75);} }
   .cr-hero-heading {
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: clamp(30px, 5vw, 58px);
     font-weight: 900; line-height: 1.0;
     letter-spacing: -.035em; color: #FFFFFF; margin-bottom: 12px;
@@ -95,7 +95,7 @@ const CSS = `
   .cr-banner-icon { font-size: 22px; flex-shrink: 0; }
   .cr-banner-body { flex: 1; }
   .cr-banner-title {
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: 13px; font-weight: 800; letter-spacing: -.01em;
     color: #34D399; margin-bottom: 3px;
   }
@@ -146,7 +146,7 @@ const CSS = `
   /* lg:grid-cols-3 with main lg:col-span-2 + sidebar lg:col-span-1 — matches Directory 2-col aesthetic */
   .cr-form { grid-column: span 2 / span 2; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
   .cr-card {
-    background: rgba(15,21,33,.82); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    background: var(--citizen-card); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
     padding: 22px 20px; display: flex; flex-direction: column; gap: 16px;
     animation: cr-up .5s ease both;
@@ -159,7 +159,7 @@ const CSS = `
   @keyframes cr-up { from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);} }
 
   .cr-card-label {
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: 14px; font-weight: 800; letter-spacing: -.02em;
     color: #FFFFFF; display: flex; align-items: center; gap: 10px;
   }
@@ -286,65 +286,65 @@ const CSS = `
   .cr-upload--error     { background: rgba(255,107,107,.08); color: #FF6B6B; border: 1px solid rgba(255,107,107,.20); }
 
   .cr-disclaimer {
-    background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.40); /* border-amber-500/40 */
+    background: var(--clr-yellow-bg); border: 1px solid var(--clr-yellow-border);
     border-radius: 14px; padding: 16px 18px;
     display: flex; flex-direction: column; gap: 12px;
     animation: cr-up .5s ease .24s both;
   }
   .cr-disclaimer-header { display: flex; align-items: center; gap: 8px; }
   .cr-disclaimer-title {
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
-    color: #FBBF24; /* text-amber-400 */
+    color: var(--c-pending);
   }
-  .cr-disclaimer-summary { font-size: 12px; color: #D1D5DB; line-height: 1.55; }
+  .cr-disclaimer-summary { font-size: 12px; color: var(--citizen-body); line-height: 1.55; }
   .cr-legal-notice {
     display: flex; align-items: flex-start; gap: 10px;
-    background: rgba(245,158,11,0.08);
-    border: 1px solid rgba(245,158,11,0.40); /* border-amber-500/40 */
+    background: var(--clr-yellow-bg);
+    border: 1px solid var(--clr-yellow-border);
     border-radius: 10px; padding: 10px 12px;
   }
   .cr-legal-notice-badge {
     flex-shrink: 0; font-size: 10px; font-weight: 800; letter-spacing: .08em;
-    color: #FBBF24; /* text-amber-400 */
-    background: rgba(245,158,11,0.15);
-    border: 1px solid rgba(245,158,11,0.35); border-radius: 6px;
+    color: var(--c-pending);
+    background: var(--clr-yellow-bg);
+    border: 1px solid var(--clr-yellow-border); border-radius: 6px;
     padding: 3px 7px; text-transform: uppercase; line-height: 1;
   }
-  .cr-legal-notice-text { font-size: 11px; color: #FDE68A; line-height: 1.6; }
-  .cr-legal-notice-text strong { color: #FBBF24; font-weight: 700; }
+  .cr-legal-notice-text { font-size: 11px; color: var(--citizen-body); line-height: 1.6; }
+  .cr-legal-notice-text strong { color: var(--c-pending); font-weight: 700; }
   .cr-check-row { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
   .cr-checkbox-hidden { display: none; }
   .cr-checkbox-box {
     width: 18px; height: 18px; flex-shrink: 0;
-    border: 1px solid rgba(245,158,11,0.40); border-radius: 5px;
-    background: rgba(245,158,11,0.08);
+    border: 1px solid var(--clr-yellow-border); border-radius: 5px;
+    background: var(--clr-yellow-bg);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: #FBBF24; margin-top: 1px;
+    font-size: 11px; font-weight: 700; color: var(--c-pending); margin-top: 1px;
     transition: all .2s;
   }
   .cr-check-text {
-    font-size: 12px; font-weight: 400; color: #D1D5DB; line-height: 1.65;
+    font-size: 12px; font-weight: 400; color: var(--citizen-body); line-height: 1.65;
   }
-  .cr-check-text strong { font-weight: 600; color: #FBBF24; }
+  .cr-check-text strong { font-weight: 600; color: var(--c-pending); }
 
   .cr-error {
-    background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.22);
+    background: var(--clr-red-bg); border: 1px solid var(--clr-red-border);
     border-radius: 10px; padding: 12px 16px;
-    font-size: 13px; color: #FF6B6B; animation: cr-up .28s ease both;
+    font-size: 13px; color: var(--clr-red); animation: cr-up .28s ease both;
   }
   .cr-skip-btn {
     display: inline-block; margin-top: 8px; padding: 7px 14px;
-    background: rgba(255,107,107,.12); border: 1px solid rgba(255,107,107,.28);
+    background: var(--clr-red-bg); border: 1px solid var(--clr-red-border);
     border-radius: 7px; font-size: 12px; font-weight: 600;
-    color: #FF6B6B; cursor: pointer; transition: background .18s;
+    color: var(--clr-red); cursor: pointer; transition: background .18s;
   }
-  .cr-skip-btn:hover { background: rgba(255,107,107,.20); }
+  .cr-skip-btn:hover { background: var(--clr-red-bg); }
 
   .cr-submit {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     width: 100%; padding: 15px 24px;
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: 14px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase;
     color: #080c14; background: #2ECC8F;
     border: none; border-radius: 12px; cursor: pointer;
@@ -366,27 +366,28 @@ const CSS = `
 
   .cr-sidebar { grid-column: span 1 / span 1; display: flex; flex-direction: column; gap: 12px; position: sticky; top: 72px; animation: cr-up .5s ease .08s both; min-width: 0; }
   .cr-sidebar-card {
-    background: rgba(15,23,42,0.92); /* bg-slate-900/90 */
+    background: var(--citizen-card);
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(30,41,59,0.9); /* border-slate-800 */
+    border: 1px solid var(--clr-border);
     border-radius: 16px; /* rounded-xl */
     padding: 16px; display: flex; flex-direction: column; gap: 10px;
     overflow: hidden; /* contain children */
+    box-shadow: var(--cd-card-shadow);
   }
-  .cr-sidebar-card--warn  { background: rgba(15,23,42,0.92); border-color: rgba(251,191,36,0.22); }
-  .cr-sidebar-card--info  { background: rgba(15,23,42,0.92); border-color: rgba(96,165,250,0.20); }
-  .cr-sidebar-card--track { background: rgba(2,44,34,0.55); border-color: rgba(52,211,153,0.28); }
+  .cr-sidebar-card--warn  { border-color: var(--clr-yellow-border); }
+  .cr-sidebar-card--info  { border-color: var(--clr-blue-border); }
+  .cr-sidebar-card--track { border-color: var(--clr-green-border); }
   .cr-sidebar-title {
-    font-family: 'Cabinet Grotesk', sans-serif;
+    font-family: var(--font-display);
     font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
-    color: #FFFFFF;
+    color: var(--clr-text);
   }
-  .cr-sidebar-text { font-size: 12px; font-weight: 400; color: #D1D5DB; line-height: 1.65; }
+  .cr-sidebar-text { font-size: 12px; font-weight: 400; color: var(--clr-text-muted); line-height: 1.65; }
   .cr-track-btn {
     display: inline-flex; align-items: center;
     font-size: 12px; font-weight: 600;
-    color: #34D399; background: rgba(46,204,143,.12);
-    border: 1px solid rgba(46,204,143,.25); border-radius: 8px;
+    color: var(--clr-green); background: var(--clr-green-bg);
+    border: 1px solid var(--clr-green-border); border-radius: 8px;
     padding: 8px 12px; cursor: pointer; width: fit-content;
     transition: background .18s, border-color .18s;
   }
@@ -396,15 +397,15 @@ const CSS = `
   .cr-hotline {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
-    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 10px;
+    background: var(--clr-surface-2); border: 1px solid var(--clr-border); border-radius: 10px;
     text-decoration: none; transition: background .2s, border-color .2s; min-height: 44px;
   }
-  .cr-hotline:hover { background: rgba(255,255,255,.06); border-color: var(--hc); }
+  .cr-hotline:hover { background: var(--clr-surface-3); border-color: var(--hc); }
   .cr-hotline-icon { font-size: 15px; }
   .cr-hotline-info { display: flex; flex-direction: column; flex: 1; }
-  .cr-hotline-label { font-size: 9.5px; font-weight: 600; letter-spacing: .10em; text-transform: uppercase; color: #9CA3AF; }
-  .cr-hotline-number { font-family: 'Cabinet Grotesk', sans-serif; font-size: 14px; font-weight: 800; color: #FFFFFF; }
-  .cr-hotline-call { font-size: 11px; font-weight: 600; color: #34D399; opacity: .85; }
+  .cr-hotline-label { font-size: 9.5px; font-weight: 600; letter-spacing: .10em; text-transform: uppercase; color: var(--clr-text-muted); }
+  .cr-hotline-number { font-family: var(--font-display); font-size: 14px; font-weight: 800; color: var(--clr-text); }
+  .cr-hotline-call { font-size: 11px; font-weight: 700; color: var(--hc, var(--clr-green)); opacity: .9; }
 
   .cr-success {
     display: flex; flex-direction: column; align-items: center; text-align: center;
@@ -412,16 +413,16 @@ const CSS = `
   }
   .cr-success-icon {
     width: 64px; height: 64px; border-radius: 50%;
-    background: rgba(46,204,143,.12); border: 1px solid rgba(46,204,143,.28);
+    background: var(--clr-green-bg); border: 1px solid var(--clr-green-border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 26px; color: #2ECC8F; margin-bottom: 22px;
+    font-size: 26px; color: var(--clr-green); margin-bottom: 22px;
   }
   .cr-success-title {
-    font-family: 'Cabinet Grotesk', sans-serif;
-    font-size: 32px; font-weight: 900; letter-spacing: -.03em; color: #FFFFFF; margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-size: 32px; font-weight: 900; letter-spacing: -.03em; color: var(--clr-text); margin-bottom: 12px;
   }
   .cr-success-sub {
-    font-size: 14px; font-weight: 400; color: #D1D5DB;
+    font-size: 14px; font-weight: 400; color: var(--clr-text-muted);
     max-width: 460px; line-height: 1.68; margin-bottom: 28px;
   }
   .cr-success-cards {
@@ -429,11 +430,11 @@ const CSS = `
     width: 100%; max-width: 780px;
   }
   .cr-success-card {
-    background: rgba(15,21,33,.82); backdrop-filter: blur(16px);
-    border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
+    background: var(--citizen-card); backdrop-filter: blur(16px);
+    border: 1px solid var(--clr-border); border-radius: 18px;
     padding: 24px 20px; flex: 1; min-width: 260px; max-width: 360px;
     display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
-    animation: cr-up .5s ease .1s both;
+    animation: cr-up .5s ease .1s both; box-shadow: var(--cd-card-shadow);
   }
   .cr-success-card--track {
     background: rgba(46,204,143,.04);
@@ -441,13 +442,13 @@ const CSS = `
     animation-delay: .18s;
   }
   .cr-success-card-icon { font-size: 30px; }
-  .cr-success-card-title { font-family: 'Cabinet Grotesk', sans-serif; font-size: 15px; font-weight: 800; color: #FFFFFF; }
-  .cr-success-card-text { font-size: 12px; color: #D1D5DB; line-height: 1.55; }
+  .cr-success-card-title { font-family: var(--font-display); font-size: 15px; font-weight: 800; color: var(--clr-text); }
+  .cr-success-card-text { font-size: 12px; color: var(--clr-text-muted); line-height: 1.55; }
   .cr-success-btn {
     margin-top: 4px; display: inline-flex; align-items: center;
     font-size: 13px; font-weight: 600;
-    color: #2ECC8F; background: rgba(46,204,143,.08);
-    border: 1px solid rgba(46,204,143,.22); border-radius: 9px;
+    color: var(--clr-green); background: var(--clr-green-bg);
+    border: 1px solid var(--clr-green-border); border-radius: 9px;
     padding: 10px 18px; cursor: pointer; min-height: 40px;
     transition: background .18s, border-color .18s;
   }
@@ -1260,13 +1261,13 @@ export default function CitizenReport({ onBack, onViewHistory, onViewReport }: C
                     {evidenceFiles.map(f => {
                       const isVideo = f.file.type.startsWith("video/");
                       return (
-                        <div key={f.id} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(0,0,0,0.4)" }}>
+                        <div key={f.id} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid var(--clr-border-2)", background: "var(--clr-surface-2)" }}>
                           {isVideo ? (
                             <video src={f.previewUrl} style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }} preload="metadata" />
                           ) : (
                             <img src={f.previewUrl} alt={f.file.name} style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }} />
                           )}
-                          <div style={{ fontSize: 10, color: "rgba(238,240,247,0.6)", padding: "4px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div style={{ fontSize: 10, color: "var(--citizen-body)", padding: "4px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {isVideo ? "🎬 " : "🖼 "}{f.file.name}
                           </div>
                           <button
@@ -1293,8 +1294,8 @@ export default function CitizenReport({ onBack, onViewHistory, onViewReport }: C
                   </div>
                 )}
                 {uploadState && uploadProgress === "uploading" && (
-                  <div className="cr-upload-track" style={{ height: 6, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "hidden", marginTop: 8 }}>
-                    <div style={{ height: "100%", width: `${Math.round((uploadState.done / Math.max(uploadState.total, 1)) * 100)}%`, background: "#2ECC8F", transition: "width 0.3s" }} />
+                  <div className="cr-upload-track" style={{ height: 6, borderRadius: 4, background: "var(--clr-surface-3)", overflow: "hidden", marginTop: 8 }}>
+                    <div style={{ height: "100%", width: `${Math.round((uploadState.done / Math.max(uploadState.total, 1)) * 100)}%`, background: "var(--clr-green)", transition: "width 0.3s" }} />
                   </div>
                 )}
                 {uploadProgress === "done" && (

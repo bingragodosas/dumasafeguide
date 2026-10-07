@@ -255,8 +255,8 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
           width: 300px;
           flex-shrink: 0;
           display: flex; flex-direction: column;
-          background: rgba(8,18,32,0.94);
-          border-right: 2px solid rgba(0,200,224,0.18);
+          background: var(--citizen-card);
+          border-right: 1px solid var(--clr-border);
           backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
           overflow: hidden;
           z-index: 5;
@@ -266,7 +266,7 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
 
         .fl-search-wrap {
           padding: 12px 14px;
-          border-bottom: 1px solid rgba(0,200,224,0.07);
+          border-bottom: 1px solid var(--clr-border);
           flex-shrink: 0; position: relative;
         }
         .fl-search-icon {
@@ -274,28 +274,28 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
           font-size: 13px; opacity: 0.22; pointer-events: none;
         }
         .fl-search-input {
-          width: 100%; background: rgba(6,15,28,0.90);
-          border: 1px solid rgba(0,200,224,0.10);
+          width: 100%; background: var(--clr-surface);
+          border: 1px solid var(--clr-border-2);
           border-radius: 9px; padding: 9px 12px 9px 32px;
-          font-family: 'Inter', sans-serif; font-size: 12px; color: #c8e4f4;
-          outline: none; caret-color: #00c8e0;
+          font-family: 'Inter', sans-serif; font-size: 12px; color: var(--clr-text);
+          outline: none; caret-color: var(--clr-green);
           transition: border-color 0.18s, box-shadow 0.18s;
         }
-        .fl-search-input::placeholder { color: rgba(160,200,224,0.16); }
+        .fl-search-input::placeholder { color: var(--clr-text-faint); }
         .fl-search-input:focus {
-          border-color: rgba(0,200,224,0.38);
-          box-shadow: 0 0 0 3px rgba(0,200,224,0.07);
-          background: rgba(0,200,224,0.02);
+          border-color: var(--clr-green-border);
+          box-shadow: 0 0 0 3px var(--clr-green-bg);
+          background: var(--clr-surface);
         }
 
         .fl-sidebar-meta {
           padding: 7px 14px 6px;
           font-family: 'Inter', sans-serif;
           font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
-          color: rgba(168,216,255,0.22); flex-shrink: 0;
-          border-bottom: 1px solid rgba(0,200,224,0.05);
+          color: var(--citizen-faint); flex-shrink: 0;
+          border-bottom: 1px solid var(--clr-border);
         }
-        .fl-sidebar-meta span { color: rgba(168,216,255,0.52); }
+        .fl-sidebar-meta span { color: var(--citizen-body); }
 
         .fl-list {
           flex: 1;
@@ -313,7 +313,7 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
         .fl-sidebar::after {
           content: '';
           position: absolute; bottom: 0; left: 0; right: 0; height: 48px;
-          background: linear-gradient(to top, rgba(8,18,32,0.92) 0%, transparent 100%);
+          background: linear-gradient(to top, var(--citizen-card) 0%, transparent 100%);
           pointer-events: none; z-index: 6;
         }
 
@@ -349,7 +349,8 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
           display: flex; align-items: center; gap: 7px;
           padding: 9px 8px 7px;
           position: sticky; top: 0; z-index: 10;
-          background: rgba(8,18,32,0.97); backdrop-filter: blur(10px);
+          background: var(--citizen-card); backdrop-filter: blur(10px);
+          border: 1px solid var(--clr-border); color: var(--clr-text);
           border-radius: 8px; margin-bottom: 4px;
         }
         .fl-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -359,15 +360,15 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
         }
         .fl-cat-badge {
           font-family: 'Inter', sans-serif;
-          font-size: 9px; font-weight: 600; color: rgba(160,200,224,0.32);
-          background: rgba(0,200,224,0.04); border: 1px solid rgba(0,200,224,0.09);
+          font-size: 9px; font-weight: 600; color: var(--citizen-faint);
+          background: var(--clr-surface-2); border: 1px solid var(--clr-border);
           border-radius: 4px; padding: 1px 6px;
         }
-        .fl-cat-divider { height: 1px; background: rgba(0,200,224,0.05); margin: 8px 2px; }
+        .fl-cat-divider { height: 1px; background: var(--clr-border); margin: 8px 2px; }
 
         .fl-card {
-          background: rgba(13,27,46,0.70);
-          border: 1px solid rgba(0,200,224,0.06);
+          background: var(--citizen-card);
+          border: 1px solid var(--clr-border);
           border-left: 3px solid var(--cat-color);
           border-radius: 10px; padding: 11px 13px;
           margin-bottom: 6px; cursor: pointer;
@@ -383,17 +384,17 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
         .fl-card:hover, .fl-card.is-selected {
           transform: translateX(3px);
           border-color: var(--cat-color);
-          background: rgba(13,27,46,0.95);
-          box-shadow: 0 3px 14px rgba(0,0,0,0.30), 0 0 10px var(--cat-glow);
+          background: var(--citizen-card);
+          box-shadow: var(--cd-card-shadow), 0 0 10px var(--cat-glow);
         }
         .fl-card.is-selected { border-left-width: 4px; }
         .fl-card-name {
           font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700;
-          color: #e8f4ff; margin-bottom: 3px; line-height: 1.3; position: relative; z-index: 1;
+          color: var(--clr-text); margin-bottom: 3px; line-height: 1.3; position: relative; z-index: 1;
         }
         .fl-card-addr {
           font-family: 'Inter', sans-serif;
-          font-size: 10px; font-weight: 300; color: rgba(160,200,224,0.32);
+          font-size: 10px; font-weight: 300; color: var(--citizen-faint);
           margin-bottom: 7px; line-height: 1.4; position: relative; z-index: 1;
         }
         .fl-card-footer {
@@ -420,7 +421,7 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
         .fl-empty {
           text-align: center; padding: 48px 16px;
           font-family: 'Inter', sans-serif;
-          font-size: 12px; font-weight: 300; color: rgba(160,200,224,0.20);
+          font-size: 12px; font-weight: 300; color: var(--citizen-faint);
         }
         .fl-empty-icon { font-size: 32px; margin-bottom: 10px; }
 
@@ -617,9 +618,9 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
             className="fl-pill"
             onClick={() => setFilter(null)}
             style={{
-              background: !activeFilter ? "rgba(0,200,224,0.10)" : "rgba(0,200,224,0.03)",
-              border: `1px solid ${!activeFilter ? "rgba(0,200,224,0.38)" : "rgba(0,200,224,0.09)"}`,
-              color: !activeFilter ? "#00c8e0" : "rgba(160,200,224,0.38)",
+              background: !activeFilter ? "color-mix(in srgb, #00c8e0 10%, transparent)" : "var(--clr-surface-2)",
+              border: `1px solid ${!activeFilter ? "color-mix(in srgb, #00c8e0 38%, transparent)" : "var(--clr-border)"}`,
+              color: !activeFilter ? "color-mix(in srgb, #00c8e0 72%, var(--clr-text))" : "var(--citizen-body)",
             }}
           >{t("map.filterAll")} ({LOCATIONS.length})</button>
           {CATEGORY_ORDER.map((cat) => {
@@ -629,9 +630,9 @@ export default function CitizenMap({ onBack }: CitizenMapProps = {}) {
               <button key={cat} className="fl-pill"
                 onClick={() => setFilter(active ? null : cat)}
                 style={{
-                  background: active ? cfg.bg : "rgba(0,200,224,0.03)",
-                  border: `1px solid ${active ? cfg.border : "rgba(0,200,224,0.09)"}`,
-                  color: active ? cfg.color : "rgba(160,200,224,0.40)",
+                  background: active ? cfg.bg : "var(--clr-surface-2)",
+                  border: `1px solid ${active ? cfg.border : "var(--clr-border)"}`,
+                  color: active ? `color-mix(in srgb, ${cfg.color} 72%, var(--clr-text))` : "var(--citizen-body)",
                   boxShadow: active ? `0 0 12px ${cfg.glow}` : "none",
                 }}
               >

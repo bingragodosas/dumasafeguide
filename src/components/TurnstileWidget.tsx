@@ -24,8 +24,42 @@ interface TurnstileWidgetProps {
 }
 
 /**
+ * Maps Cloudflare Turnstile error codes to actionable messages so users
+ * (and developers via the console) can tell a blocked script apart from a
+ * misconfigured site key.
+ */
+function describeTurnstileError(code: unknown): string {
+  const c = String(code ?? "").toLowerCase();
+  console.error("[TurnstileWidget] error code:", code);
+  switch (c) {
+    case "invalid-sitekey":
+      return "Security check is misconfigured (invalid site key). Please contact support.";
+    case "invalid-domain":
+      return "Security check rejected this domain. Please contact support.";
+    case "unsupported-browser":
+      return "Security check isn't supported by this browser. Please try Chrome, Edge, or Firefox.";
+    case "timeout":
+    case "timeout-or-duplicate":
+      return "Security check timed out. Please retry.";
+    case "rate-limited":
+      return "Too many security checks. Please wait a minute and retry.";
+    case "network-error":
+      return "Security check couldn't reach Cloudflare. Check your connection or VPN and retry.";
+    default:
+      return "Security check failed to load. Check your connection / ad-blocker and retry.";
+  }
+}
+
+/**
  * Renders Cloudflare Turnstile once per mount and loads the script only when this
  * component is mounted. Ensures a single widget instance per mount + proper cleanup.
+ *
+ * Reliability notes:
+ * - Every mount injects a FRESH script tag (removing stale ones first), so the
+ *   parent's Retry button (which remounts via `key`) actually reloads Cloudflare
+ *   instead of re-listening to a dead/blocked tag forever.
+ * - A script `onerror` fires the error path immediately instead of waiting out
+ *   the full 10s poll window.
  */
 export default function TurnstileWidget({
   onToken,
@@ -78,9 +112,9 @@ export default function TurnstileWidget({
             if (cancelled) return;
             onErrorRef.current?.("Security check timed out. Please retry.");
           },
-          "error-callback": () => {
+          "error-callback": (code?: string) => {
             if (cancelled) return;
-            onErrorRef.current?.("Security check failed to load. Check your connection / ad-blocker and retry.");
+            onErrorRef.current?.(describeTurnstileError(code));
           },
         });
         if (!cancelled) onReadyRef.current?.();
@@ -90,6 +124,31 @@ export default function TurnstileWidget({
         onErrorRef.current?.("Security check failed to load. Check your connection / ad-blocker and retry.");
         return false;
       }
+    };
+
+    // Always (re)inject a fresh API script on mount. A previous tag may have
+    // been blocked by an ad-blocker/VPN (its `load` never fires), in which
+    // case merely listening to it would hang until the poll window expires —
+    // and every Retry remount would hang the same way. Removing stale tags
+    // first guarantees each mount gets a real load attempt + an `onerror`.
+    const injectScript = () => {
+      try {
+        document
+          .querySelectorAll<HTMLScriptElement>('script[src*="challenges.cloudflare.com/turnstile"]')
+          .forEach((s) => s.remove());
+      } catch {}
+      const script = document.createElement("script");
+      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      script.addEventListener("load", () => renderWidget());
+      script.addEventListener("error", () => {
+        if (cancelled) return;
+        onErrorRef.current?.(
+          "Security check script was blocked. Disable your ad-blocker for this site (or allow challenges.cloudflare.com) and retry."
+        );
+      });
+      document.head.appendChild(script);
     };
 
     if (window.turnstile) {
@@ -107,17 +166,7 @@ export default function TurnstileWidget({
         }
       }, 200);
 
-      const existing = document.querySelector<HTMLScriptElement>('script[src*="turnstile"]');
-      const onLoad = () => renderWidget();
-      existing?.addEventListener("load", onLoad);
-      if (!existing) {
-        const script = document.createElement("script");
-        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-        script.async = true;
-        script.defer = true;
-        script.addEventListener("load", onLoad);
-        document.head.appendChild(script);
-      }
+      injectScript();
     }
 
     return () => {

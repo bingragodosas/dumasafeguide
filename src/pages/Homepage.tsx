@@ -7,6 +7,7 @@ import homepageBg from "../assets/homepage.bg.jpg";
 import { useLanguage } from "../context/LanguageContext";
 import { LanguageSelectModal } from "../components/LanguageSelectModal";
 import TurnstileWidget from "../components/TurnstileWidget";
+import { useTheme } from "../context/ThemeContext";
 
 function EmergencyRunner() {
   const { t, tList } = useLanguage();
@@ -17,7 +18,7 @@ function EmergencyRunner() {
     <>
       <style>{`
         .hp-runner {
-          position: fixed; top: 58px; left: 0; right: 0;
+          position: fixed; top: 70px; left: 0; right: 0;
           z-index: 99998; height: 34px;
           background: rgba(5,11,22,0.97);
           border-bottom: 1px solid rgba(232,55,42,0.28);
@@ -242,6 +243,7 @@ function StatCounter({
 
 export default function Homepage() {
   const { t } = useLanguage();
+  const { isLight } = useTheme();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -316,7 +318,9 @@ export default function Homepage() {
       setError(t("auth.errNeedCaptcha"));
       return;
     }
-    if (!captchaToken) {
+    // If the widget itself failed to load (status "error"), don't brick the
+    // login: attempt auth without a token and let Supabase decide.
+    if (!captchaToken && captchaStatus !== "error") {
       setError(captchaMsg || t("auth.errNeedCaptcha"));
       return;
     }
@@ -327,7 +331,7 @@ export default function Homepage() {
         await supabase.auth.signInWithPassword({
           email,
           password,
-          options: { captchaToken },
+          ...(captchaToken ? { options: { captchaToken } } : {}),
         });
       if (authError || !authData.user) {
         const rawMessage = (authError?.message || "").toLowerCase();
@@ -1284,6 +1288,186 @@ export default function Homepage() {
           .hp-hero h1 { font-size: clamp(30px, 9vw, 46px); }
           .hp-auth-panel { padding: 20px 14px 18px; }
         }
+
+        /* ══════════════════════════════════════════════════════════════
+           PRO LIGHT MODE — html[data-theme="light"]
+           Soft off-white canvas, dark-slate type (never pure black),
+           white cards with hairline borders + soft shadows.
+           Every low-contrast dark-mode rgba() is overridden so all
+           fonts stay legible. Scoped to .hp-* so dashboards are untouched.
+           ══════════════════════════════════════════════════════════════ */
+        html[data-theme="light"] .hp-root { color: #16263f; }
+        html[data-theme="light"] .hp-bg-img { opacity: 0.6; filter: saturate(1) brightness(1.02); }
+        html[data-theme="light"] .hp-bg-overlay {
+          background: linear-gradient(
+            180deg,
+            rgba(240,244,249,0.84) 0%,
+            rgba(240,244,249,0.66) 40%,
+            rgba(238,242,247,0.80) 75%,
+            rgba(234,239,245,0.97) 100%
+          );
+        }
+        html[data-theme="light"] .hp-bg-atmosphere {
+          background:
+            radial-gradient(ellipse 70% 60% at 10% 0%, rgba(232,55,42,0.08) 0%, transparent 65%),
+            radial-gradient(ellipse 60% 70% at 90% 100%, rgba(29,79,215,0.08) 0%, transparent 70%),
+            radial-gradient(ellipse 50% 50% at 55% 45%, rgba(255,255,255,0.55) 0%, transparent 60%);
+        }
+        html[data-theme="light"] .hp-bg-grain { opacity: 0.22; }
+        html[data-theme="light"] .hp-orb { filter: blur(70px); opacity: 0.8; }
+        html[data-theme="light"] .hp-orb-1 { background: radial-gradient(circle, rgba(232,55,42,0.10) 0%, transparent 70%); }
+        html[data-theme="light"] .hp-orb-2 { background: radial-gradient(circle, rgba(29,79,215,0.10) 0%, transparent 70%); }
+        html[data-theme="light"] .hp-orb-3 { background: radial-gradient(circle, rgba(0,122,77,0.08) 0%, transparent 70%); }
+
+        /* ── Emergency ticker → light ── */
+        html[data-theme="light"] .hp-runner {
+          background: rgba(255,255,255,0.96);
+          border-bottom: 1px solid rgba(15,30,51,0.10);
+          border-top: 1px solid rgba(15,30,51,0.06);
+          box-shadow: 0 4px 20px rgba(15,30,51,0.08);
+        }
+        html[data-theme="light"] .hp-runner-badge {
+          background: linear-gradient(135deg, rgba(232,55,42,0.12), rgba(232,55,42,0.05));
+          border-right: 1px solid rgba(232,55,42,0.25);
+        }
+        html[data-theme="light"] .hp-runner-item { color: rgba(22,38,63,0.78); }
+        html[data-theme="light"] .hp-runner-sep { background: rgba(29,79,215,0.35); }
+        html[data-theme="light"] .hp-911-badge {
+          background: #ffffff;
+          border-color: rgba(232,55,42,0.45);
+          box-shadow: 0 2px 12px rgba(232,55,42,0.18);
+          animation: none;
+        }
+        html[data-theme="light"] .hp-911-badge:hover { background: rgba(232,55,42,0.08); }
+        html[data-theme="light"] .hp-911-number { color: #b32323; text-shadow: none; }
+        html[data-theme="light"] .hp-911-label { color: #b32323; animation: none; }
+        html[data-theme="light"] .hp-runner-mute { border-left: 1px solid rgba(15,30,51,0.10); }
+        html[data-theme="light"] .hp-runner-mute svg { color: rgba(22,38,63,0.40); }
+        html[data-theme="light"] .hp-runner-mute:hover { background: rgba(15,30,51,0.05); }
+        html[data-theme="light"] .hp-runner-mute:hover svg { color: rgba(22,38,63,0.75); }
+
+        /* ── Hero copy → light ── */
+        html[data-theme="light"] .hp-hero h1 {
+          background: linear-gradient(135deg, #0f1e33 0%, #274b7a 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        html[data-theme="light"] .hp-hero h1 .accent {
+          background: linear-gradient(135deg, #0077b6 0%, #1d4fd7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        html[data-theme="light"] .hp-hero-eyebrow { color: #b32323; }
+        html[data-theme="light"] .hp-hero-eyebrow::after { background: linear-gradient(90deg, #b32323, transparent); }
+        html[data-theme="light"] .hp-hero-sub { color: rgba(22,38,63,0.74); }
+
+        /* ── Stats strip → light card ── */
+        html[data-theme="light"] .hp-stats {
+          background: #ffffff;
+          border: 1px solid rgba(15,30,51,0.10);
+          box-shadow: 0 6px 28px rgba(15,30,51,0.08);
+        }
+        html[data-theme="light"] .hp-stat:hover { background: rgba(29,79,215,0.04); }
+        html[data-theme="light"] .hp-stat + .hp-stat::before { background: rgba(15,30,51,0.10); }
+        html[data-theme="light"] .hp-stat-value {
+          background: linear-gradient(135deg, #0f1e33 0%, #274b7a 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        html[data-theme="light"] .hp-stat-suffix { color: #1d4fd7; }
+        html[data-theme="light"] .hp-stat-label { color: rgba(22,38,63,0.60); }
+
+        /* ── Auth panel → white pro card ── */
+        html[data-theme="light"] .hp-auth-panel {
+          background: #ffffff;
+          border: 1px solid rgba(15,30,51,0.10);
+          box-shadow: 0 12px 44px rgba(15,30,51,0.12), inset 0 1px 0 rgba(255,255,255,0.9);
+        }
+        html[data-theme="light"] .hp-auth-panel::after {
+          background: radial-gradient(circle, rgba(29,79,215,0.08), transparent 70%);
+        }
+        html[data-theme="light"] .hp-auth-scan::after {
+          background: linear-gradient(90deg, transparent 0%, rgba(29,79,215,0.14) 40%, rgba(29,79,215,0.22) 50%, rgba(29,79,215,0.14) 60%, transparent 100%);
+        }
+        html[data-theme="light"] .hp-auth-watermark { color: rgba(15,30,51,0.045); }
+        html[data-theme="light"] .hp-auth-title { color: #0f1e33; }
+        html[data-theme="light"] .hp-auth-subtitle { color: rgba(22,38,63,0.66); }
+        html[data-theme="light"] .hp-auth-label { color: rgba(22,38,63,0.58); }
+        html[data-theme="light"] .hp-auth-input {
+          background: #f1f5f9;
+          border: 1px solid rgba(15,30,51,0.14);
+          color: #0f1e33;
+          caret-color: #1d4fd7;
+        }
+        html[data-theme="light"] .hp-auth-input::placeholder { color: rgba(22,38,63,0.35); }
+        html[data-theme="light"] .hp-auth-input:focus {
+          border-color: rgba(29,79,215,0.55);
+          box-shadow: 0 0 0 3.5px rgba(29,79,215,0.10);
+          background: #ffffff;
+        }
+        html[data-theme="light"] .hp-auth-remember { color: rgba(22,38,63,0.62); }
+        html[data-theme="light"] .hp-auth-remember:hover { color: #0f1e33; }
+        html[data-theme="light"] .hp-auth-forgot { color: #1d4fd7; }
+        html[data-theme="light"] .hp-auth-forgot:hover { color: #0077b6; text-shadow: none; }
+        html[data-theme="light"] .hp-auth-error {
+          color: #8f1d1d;
+          background: rgba(179,35,35,0.08);
+          border-color: rgba(179,35,35,0.28);
+        }
+        html[data-theme="light"] .hp-turnstile-box {
+          background: #f1f5f9;
+          border-color: rgba(15,30,51,0.12);
+        }
+        html[data-theme="light"] .hp-auth-or-line { background: rgba(15,30,51,0.12); }
+        html[data-theme="light"] .hp-auth-or-text { color: rgba(22,38,63,0.52); }
+        html[data-theme="light"] .hp-auth-create {
+          background: #ffffff;
+          border-color: rgba(29,79,215,0.35);
+          color: #1d4fd7;
+        }
+        html[data-theme="light"] .hp-auth-create:hover {
+          background: rgba(29,79,215,0.07);
+          border-color: rgba(29,79,215,0.60);
+          box-shadow: 0 6px 22px rgba(29,79,215,0.14);
+        }
+
+        /* ── Divider + quick-access cards → light ── */
+        html[data-theme="light"] .hp-divider-label { color: rgba(22,38,63,0.55); }
+        html[data-theme="light"] .hp-divider-line { background: linear-gradient(90deg, rgba(15,30,51,0.18), transparent); }
+        html[data-theme="light"] .hp-card {
+          background: #ffffff;
+          border-color: rgba(15,30,51,0.10);
+          box-shadow: 0 6px 26px rgba(15,30,51,0.07);
+        }
+        html[data-theme="light"] .hp-card:hover {
+          background: #ffffff;
+          border-color: var(--accent-color);
+          box-shadow: 0 16px 40px rgba(15,30,51,0.12), 0 0 24px var(--accent-alpha);
+        }
+        html[data-theme="light"] .hp-card-title { color: #0f1e33; }
+        html[data-theme="light"] .hp-card-desc { color: rgba(22,38,63,0.70); }
+        html[data-theme="light"] .hp-footer-bridge {
+          background: linear-gradient(to bottom, rgba(234,239,245,0) 0%, rgba(234,239,245,1) 100%);
+        }
+
+        /* ── Theme-aware micro-controls (eye / captcha hints) ── */
+        .hp-eye-btn { color: rgba(168,216,255,0.40); }
+        .hp-eye-btn:hover { color: #A8D8FF; }
+        .hp-captcha-hint { font-size: 12px; color: rgba(168,216,255,0.55); margin-top: 8px; text-align: center; }
+        .hp-captcha-err { font-size: 12px; color: #ffb4a6; margin-top: 8px; text-align: center; max-width: 320px; }
+        .hp-captcha-retry {
+          background: none; border: none; color: #00c8e0; cursor: pointer;
+          font-weight: 700; font-size: 12px; padding: 0; margin-left: 4px;
+        }
+        .hp-captcha-retry:hover { text-decoration: underline; }
+        html[data-theme="light"] .hp-eye-btn { color: rgba(22,38,63,0.45); }
+        html[data-theme="light"] .hp-eye-btn:hover { color: #0f1e33; }
+        html[data-theme="light"] .hp-captcha-hint { color: rgba(22,38,63,0.62); }
+        html[data-theme="light"] .hp-captcha-err { color: #8f1d1d; }
+        html[data-theme="light"] .hp-captcha-retry { color: #1d4fd7; }
       `}</style>
 
       {/* ── Outermost wrapper ── */}
@@ -1300,8 +1484,8 @@ export default function Homepage() {
         <div className="hp-root">
           {/* ── Ticker + 911 badge ── */}
           <EmergencyRunner />
-          {/* ── Spacer: navbar (58px) + ticker (34px) ── */}
-          <div style={{ height: "92px", width: "100%", flexShrink: 0 }} />
+          {/* ── Spacer: navbar (70px) + ticker (34px) ── */}
+          <div style={{ height: "104px", width: "100%", flexShrink: 0 }} />
 
           {/* ── Fixed background ── */}
           <div className="hp-bg">
@@ -1383,6 +1567,7 @@ export default function Homepage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword((v) => !v)}
+                      className="hp-eye-btn"
                       style={{
                         position: "absolute",
                         right: "12px",
@@ -1394,11 +1579,8 @@ export default function Homepage() {
                         padding: 0,
                         display: "flex",
                         alignItems: "center",
-                        color: "rgba(168,216,255,0.40)",
                         transition: "color 0.2s",
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = "#A8D8FF")}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(168,216,255,0.40)")}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <FaEyeSlash size={15} /> : <FaEye size={15} />}
@@ -1423,6 +1605,7 @@ export default function Homepage() {
                   <TurnstileWidget
                     key={turnstileKey}
                     className="hp-turnstile-box"
+                    theme={isLight ? "light" : "dark"}
                     onToken={(token) => {
                       setCaptchaToken(token);
                       setCaptchaMsg("");
@@ -1441,26 +1624,17 @@ export default function Homepage() {
                     onReady={() => setCaptchaStatus("ready")}
                   />
                   {captchaStatus === "loading" && !captchaToken && (
-                    <div style={{ fontSize: 12, color: "rgba(168,216,255,0.55)", marginTop: 8 }}>
+                    <div className="hp-captcha-hint">
                       {t("auth.errNeedCaptcha")}
                     </div>
                   )}
                   {captchaMsg && captchaStatus !== "loading" && (
-                    <div style={{ fontSize: 12, color: "#ffb4a6", marginTop: 8, textAlign: "center", maxWidth: 320 }}>
+                    <div className="hp-captcha-err">
                       {captchaMsg}{" "}
                       <button
                         type="button"
                         onClick={retryCaptcha}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#00c8e0",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          padding: 0,
-                          marginLeft: 4,
-                        }}
+                        className="hp-captcha-retry"
                       >
                         Retry
                       </button>

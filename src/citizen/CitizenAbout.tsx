@@ -109,7 +109,7 @@ const CSS = `
 
   /* ── Intro card ── */
   .ca-intro {
-    background: rgba(15,21,33,.82);
+    background: var(--citizen-card);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 18px; padding: 28px 32px;
     position: relative; overflow: hidden;
@@ -135,7 +135,7 @@ const CSS = `
   @media(max-width:640px) { .ca-pillars { grid-template-columns: 1fr; } }
 
   .ca-pillar {
-    background: rgba(15,21,33,.82);
+    background: var(--citizen-card);
     border: 1px solid rgba(255,255,255,.07);
     border-top: 2px solid var(--pa);
     border-radius: 18px; padding: 26px 24px;
@@ -186,7 +186,7 @@ const CSS = `
 
   /* ── Features list ── */
   .ca-features {
-    background: rgba(15,21,33,.82);
+    background: var(--citizen-card);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 18px; overflow: hidden;
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -238,7 +238,7 @@ const CSS = `
 
   /* ── Partners strip ── */
   .ca-partners {
-    background: rgba(15,21,33,.82);
+    background: var(--citizen-card);
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 18px; padding: 24px 28px;
     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -267,7 +267,7 @@ const CSS = `
 
   /* ── CTA ── */
   .ca-cta {
-    background: rgba(15,21,33,.82);
+    background: var(--citizen-card);
     border: 1px solid rgba(255,107,107,.18);
     border-radius: 18px; padding: 30px 32px;
     display: flex; align-items: center; justify-content: space-between; gap: 20px;

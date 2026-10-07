@@ -808,23 +808,23 @@ export default function AdminAlertsPage() {
           {/* ── Send confirmation modal ── */}
           {confirmSend && (
             <div
-              style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+              className="al-confirm-backdrop"
               onClick={() => !sending && setConfirmSend(false)}
             >
               <div
-                style={{ width: "100%", maxWidth: 480, background: "#0f1623", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 22 }}
+                className="al-confirm-box"
                 onClick={e => e.stopPropagation()}
               >
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#eef0f7", marginBottom: 12 }}>Send this alert?</div>
-                <div style={{ fontSize: 12, color: "rgba(238,240,247,0.55)", marginBottom: 6 }}><strong>Title:</strong> {title.trim() || "Alert"}</div>
-                <div style={{ fontSize: 12, color: "rgba(238,240,247,0.55)", marginBottom: 6 }}>
+                <div className="al-confirm-title">Send this alert?</div>
+                <div className="al-confirm-row"><strong>Title:</strong> {title.trim() || "Alert"}</div>
+                <div className="al-confirm-row">
                   <strong>To:</strong> {AUD_LABELS[audience]} &nbsp;·&nbsp; <strong>Severity:</strong> {severity}
                 </div>
-                <div style={{ fontSize: 13, color: "#eef0f7", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "10px 12px", marginBottom: 16, maxHeight: 160, overflowY: "auto", lineHeight: 1.55 }}>
+                <div className="al-confirm-msg">
                   {message.trim()}
                 </div>
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                  <button className="al-send-btn" style={{ background: "transparent" }} disabled={sending} onClick={() => setConfirmSend(false)}>Cancel</button>
+                  <button className="al-send-btn al-send-btn--ghost" disabled={sending} onClick={() => setConfirmSend(false)}>Cancel</button>
                   <button className="al-send-btn" disabled={sending} onClick={sendAlert}>
                     {sending ? <><span className="al-spinner" /> Sending…</> : "Confirm & Send"}
                   </button>

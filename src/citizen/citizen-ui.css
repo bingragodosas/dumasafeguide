@@ -1,0 +1,547 @@
+/* src/citizen/citizen-ui.css
+ * ── DumaSafeGuide Citizen Design System ─────────────────────────────────
+ * Single source of truth for every citizen-facing surface. Imported ONCE in
+ * main.tsx AFTER index.css so these rules win ties at equal specificity.
+ *
+ * LAYERS
+ *  1. Tokens   — spacing / radii / type / motion (theme-agnostic)
+ *  2. Atoms    — eyebrow, headings, cards, pills, buttons, tiles, banners
+ *  3. Patterns — stat grids, quick actions, report rows, bottom nav, skeletons
+ *  4. A11y     — focus rings, reduced motion, touch targets
+ *
+ * THEMING CONTRACT: atoms reference ONLY global theme vars (--clr-*, --c-*,
+ * --citizen-*) — never raw hex/rgba. Dark stays pixel-identical; light flips
+ * automatically. Do NOT put page-specific rules here; pages compose atoms.
+ */
+
+:root {
+  /* ── Spacing scale (4pt grid) ── */
+  --dsg-s1: 4px;
+  --dsg-s2: 8px;
+  --dsg-s3: 12px;
+  --dsg-s4: 16px;
+  --dsg-s5: 20px;
+  --dsg-s6: 24px;
+  --dsg-s8: 32px;
+
+  /* ── Radii ── */
+  --dsg-r-sm: 8px;
+  --dsg-r-md: 12px;
+  --dsg-r-lg: 16px;
+  --dsg-r-xl: 20px;
+  --dsg-r-pill: 999px;
+
+  /* ── Type scale ── */
+  --dsg-eyebrow-size: 10px;
+  --dsg-title-size: clamp(26px, 4.5vw, 36px);
+  --dsg-card-title-size: 13px;
+  --dsg-body-size: 12px;
+  --dsg-caption-size: 10px;
+
+  /* ── Motion ── */
+  --dsg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dsg-fast: 0.15s;
+  --dsg-med: 0.25s;
+}
+
+/* ══ 2. ATOMS ═══════════════════════════════════════════════════════════ */
+
+/* Cinematic photo shell shared by citizen pages */
+.dsg-page {
+  min-height: 100vh;
+  background-image: linear-gradient(var(--citizen-scrim), var(--citizen-scrim)), var(--dsg-page-photo, none);
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+}
+
+.dsg-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--dsg-s6) var(--dsg-s6) 96px;
+}
+
+@media (max-width: 640px) {
+  .dsg-wrap { padding: var(--dsg-s4) var(--dsg-s4) 96px; }
+}
+
+/* Eyebrow kicker: 10px / extrabold / wide tracking / uppercase */
+.dsg-eyebrow {
+  font-size: var(--dsg-eyebrow-size);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clr-green);
+  margin-bottom: 6px;
+}
+
+.dsg-h1 {
+  font-size: var(--dsg-title-size);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  color: var(--clr-text);
+  margin-bottom: 4px;
+}
+
+.dsg-sub {
+  font-size: var(--dsg-caption-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+}
+
+/* Section header: small-caps title + optional right-side slot */
+.dsg-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dsg-s3);
+  margin-bottom: 14px;
+}
+
+.dsg-sec-title {
+  font-size: var(--dsg-eyebrow-size);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+}
+
+/* Card: the one true surface */
+.dsg-card {
+  background: var(--citizen-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--dsg-r-lg);
+  box-shadow: var(--cd-card-shadow);
+  padding: var(--dsg-s4);
+}
+
+.dsg-card--flush { padding: 0; }
+
+/* Icon tile: 34px rounded square for row glyphs */
+.dsg-tile {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--clr-surface-2);
+  border: 1px solid var(--clr-border);
+}
+
+/* Status pill + type tag share geometry; color comes from vars */
+.dsg-pill,
+.dsg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.dsg-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* Notice strip (pending-review banner etc.) */
+.dsg-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--dsg-s3);
+  background: var(--banner-bg, var(--clr-yellow-bg));
+  border: 1px solid var(--banner-border, var(--clr-yellow-border));
+  border-left: 3px solid var(--banner-accent, var(--c-pending));
+  border-radius: 10px;
+  padding: var(--dsg-s3) 14px;
+  margin-bottom: var(--dsg-s5);
+}
+
+.dsg-banner-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--clr-text-muted);
+  line-height: 1.55;
+}
+
+.dsg-banner-body strong { color: var(--clr-text); }
+
+.dsg-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--banner-accent, var(--c-pending));
+  border: 1px solid var(--banner-border, var(--clr-yellow-border));
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px 14px;
+  min-height: 32px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--dsg-fast) var(--dsg-ease), transform var(--dsg-fast) var(--dsg-ease);
+}
+
+.dsg-btn-outline:hover {
+  background: var(--banner-bg, var(--clr-yellow-bg));
+  transform: translateY(-1px);
+}
+
+/* Empty state */
+.dsg-empty {
+  text-align: center;
+  padding: var(--dsg-s8) var(--dsg-s4);
+}
+
+.dsg-empty-icon {
+  font-size: 26px;
+  color: var(--clr-text-faint);
+  margin-bottom: var(--dsg-s2);
+  opacity: 0.55;
+}
+
+.dsg-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin-bottom: 4px;
+}
+
+.dsg-empty-sub {
+  font-size: var(--dsg-body-size);
+  color: var(--clr-text-muted);
+  line-height: 1.6;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.dsg-empty-action {
+  margin-top: var(--dsg-s3);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clr-green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.dsg-empty-action:hover { text-decoration: underline; }
+
+/* Timestamp: mono, faint but legible */
+.dsg-time {
+  font-size: var(--dsg-caption-size);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--citizen-faint);
+  white-space: nowrap;
+}
+
+/* ══ 3. PATTERNS ═════════════════════════════════════════════════════════ */
+
+/* Stat cards */
+.dsg-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: var(--dsg-s4);
+}
+
+@media (max-width: 640px) {
+  .dsg-stat-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.dsg-stat {
+  background: var(--citizen-card);
+  border: 1px solid var(--clr-border);
+  border-top: 2px solid var(--stat-accent, var(--clr-green));
+  border-radius: var(--dsg-r-md);
+  box-shadow: var(--cd-card-shadow);
+  padding: var(--dsg-s4) var(--dsg-s4);
+  min-width: 0;
+  transition: transform var(--dsg-med) var(--dsg-ease), border-color var(--dsg-fast) ease;
+}
+
+.dsg-stat:hover { transform: translateY(-2px); }
+
+.dsg-stat-ic {
+  font-size: 15px;
+  color: var(--stat-accent, var(--clr-green));
+  margin-bottom: var(--dsg-s2);
+  display: flex;
+}
+
+.dsg-stat-num {
+  font-size: clamp(24px, 4vw, 30px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--stat-accent, var(--clr-green));
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dsg-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clr-text-muted);
+  line-height: 1.5;
+}
+
+/* Quick actions */
+.dsg-qa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--dsg-s2);
+  margin-bottom: var(--dsg-s5);
+}
+
+.dsg-qa {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--dsg-s3);
+  min-height: 52px;
+  background: var(--citizen-card);
+  border: 1px solid var(--clr-border);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--clr-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color var(--dsg-fast) ease, color var(--dsg-fast) ease,
+    transform var(--dsg-fast) var(--dsg-ease);
+}
+
+.dsg-qa:hover {
+  border-color: var(--clr-border-2);
+  color: var(--clr-text);
+  transform: translateY(-1px);
+}
+
+.dsg-qa .dsg-tile { width: 32px; height: 32px; min-width: 32px; }
+
+/* Report rows */
+.dsg-list { display: flex; flex-direction: column; }
+
+.dsg-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--citizen-row-border);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  border-radius: 8px;
+  transition: background var(--dsg-fast) ease;
+}
+
+.dsg-list > .dsg-row:last-child { border-bottom: none; }
+
+.dsg-row:hover { background: color-mix(in srgb, var(--clr-text) 3%, transparent); }
+
+.dsg-row-body { flex: 1; min-width: 0; display: block; }
+
+.dsg-row-title {
+  display: block;
+  font-size: var(--dsg-card-title-size);
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 2px;
+  line-height: 1.35;
+}
+
+.dsg-row-sub {
+  display: block;
+  font-size: var(--dsg-body-size);
+  color: var(--citizen-body);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+/* Primary-line variant (history rows: description is the headline) */
+.dsg-row-desc {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clr-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.dsg-row.is-unread {
+  background: color-mix(in srgb, var(--clr-green) 5%, transparent);
+}
+
+.dsg-row-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--dsg-s2);
+  flex-wrap: wrap;
+}
+
+/* Skeleton shimmer (replaces spinners for list content) */
+.dsg-skel {
+  border-radius: 6px;
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--clr-text) 7%, transparent) 30%,
+    color-mix(in srgb, var(--clr-text) 13%, transparent) 50%,
+    color-mix(in srgb, var(--clr-text) 7%, transparent) 70%
+  );
+  background-size: 200% 100%;
+  animation: dsg-shimmer 1.4s ease infinite;
+}
+
+@keyframes dsg-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -20% 0; }
+}
+
+/* Mobile bottom nav */
+.dsg-bottomnav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--citizen-rail);
+  border-top: 1px solid var(--clr-border);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.dsg-bnav-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--citizen-body);
+  min-height: 56px;
+  border-radius: 10px;
+  transition: color var(--dsg-fast) ease;
+}
+
+.dsg-bnav-btn:hover { color: var(--clr-text); }
+
+.dsg-bnav-btn.is-active { color: var(--clr-green); }
+
+.dsg-bnav-btn svg { font-size: 19px; }
+
+.dsg-bnav-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dsg-bnav-badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 20px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--clr-red);
+  border-radius: var(--dsg-r-pill);
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ══ 4. A11Y ══════════════════════════════════════════════════════════════ */
+
+/* Visible keyboard focus across every citizen surface */
+.citizen-page a:focus-visible,
+.citizen-page button:focus-visible,
+.ch-portal a:focus-visible,
+.ch-portal button:focus-visible,
+.ca-root a:focus-visible,
+.ca-root button:focus-visible,
+.cr-root a:focus-visible,
+.cr-root button:focus-visible,
+.fl-root a:focus-visible,
+.fl-root button:focus-visible,
+.cst a:focus-visible,
+.cst button:focus-visible,
+.dsg-page a:focus-visible,
+.dsg-page button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--clr-green);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .citizen-page *,
+  .ch-portal *,
+  .ca-root *,
+  .cr-root *,
+  .fl-root *,
+  .cst *,
+  .dsg-page *,
+  .dsg-page {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .dsg-stat:hover,
+  .dsg-qa:hover,
+  .dsg-btn-outline:hover {
+    transform: none;
+  }
+}

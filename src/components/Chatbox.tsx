@@ -552,7 +552,7 @@ export default function ChatBox({
   }, [participants, recipientId, recipientNameProp]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "min(560px, calc(100dvh - 220px))", minHeight: "400px", maxHeight: "70dvh", backgroundColor: "rgba(15,21,33,0.95)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", overflow: "hidden", fontFamily: "'Inter', sans-serif", color: "#eef0f7" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "min(560px, calc(100dvh - 220px))", minHeight: "400px", maxHeight: "70dvh", backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderRadius: "14px", overflow: "hidden", fontFamily: "'Inter', sans-serif", color: "var(--clr-text)", boxShadow: "var(--cd-card-shadow)" }}>
       <style>{`
         @keyframes chatTypingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-3px); opacity: 1; } }
         .chat-typing-dot { width: 5px; height: 5px; border-radius: 50%; background-color: currentColor; display: inline-block; animation: chatTypingBounce 1.2s infinite ease-in-out; }
@@ -566,21 +566,21 @@ export default function ChatBox({
       `}</style>
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)", backgroundColor: "rgba(8,12,20,0.6)", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "14px 16px", borderBottom: "1px solid var(--clr-border)", backgroundColor: "var(--clr-surface-2)", flexShrink: 0 }}>
         <div style={{ position: "relative" }}>
-          <div style={{ width: "36px", height: "36px", minWidth: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", backgroundColor: "rgba(46,204,143,0.15)", color: "#2ECC8F", border: "1px solid rgba(46,204,143,0.3)" }}>
+          <div style={{ width: "36px", height: "36px", minWidth: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", backgroundColor: "rgba(46,204,143,0.15)", color: "var(--clr-green)", border: "1px solid rgba(46,204,143,0.3)" }}>
             {recipientName ? getInitials(recipientName) : "?"}
           </div>
           {isRecipientOnline && (
-            <span style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "#2ECC8F", border: "2px solid rgba(8,12,20,0.9)" }} />
+            <span style={{ position: "absolute", bottom: "-1px", right: "-1px", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--clr-green)", border: "2px solid rgba(8,12,20,0.9)" }} />
           )}
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: "13px", fontWeight: "700" }}>
             {recipientName || t("chat.chatWith", "Chat")}
-            {!queueOnline && <span style={{ fontSize: "10px", color: "#EF5B5B", marginLeft: "6px" }}>(Offline)</span>}
+            {!queueOnline && <span style={{ fontSize: "10px", color: "var(--clr-red)", marginLeft: "6px" }}>(Offline)</span>}
           </div>
-          <div style={{ fontSize: "10px", display: "flex", alignItems: "center", gap: "5px", color: otherTyping ? "#2ECC8F" : (isRecipientOnline ? "rgba(46,204,143,0.8)" : "rgba(238,240,247,0.35)") }}>
+          <div style={{ fontSize: "10px", display: "flex", alignItems: "center", gap: "5px", color: otherTyping ? "var(--clr-green)" : (isRecipientOnline ? "var(--clr-green)" : "var(--clr-text-faint)") }}>
             {otherTyping ? (
               <>
                 <span style={{ display: "inline-flex", gap: "2px" }}><span className="chat-typing-dot" /><span className="chat-typing-dot" /><span className="chat-typing-dot" /></span>
@@ -591,28 +591,30 @@ export default function ChatBox({
         </div>
         {/* Call buttons */}
         <div className="chat-header-actions" style={{ display: "flex", gap: "6px", pointerEvents: "auto", zIndex: 10, position: "relative" }}>
-          <button onClick={() => { console.log("Audio call clicked"); handleStartAudioCall(); }} disabled={!effectiveOnline} title="Audio Call" style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px 10px", cursor: effectiveOnline ? "pointer" : "not-allowed", color: effectiveOnline ? "#2ECC8F" : "rgba(238,240,247,0.2)", fontSize: "16px", opacity: effectiveOnline ? 1 : 0.4, pointerEvents: effectiveOnline ? "auto" : "none", position: "relative", zIndex: 10, minWidth: "40px", minHeight: "40px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={() => { console.log("Audio call clicked"); handleStartAudioCall(); }} disabled={!effectiveOnline} title="Audio Call" style={{ background: "none", border: "1px solid var(--clr-border-2)", borderRadius: "8px", padding: "8px 10px", cursor: effectiveOnline ? "pointer" : "not-allowed", color: effectiveOnline ? "var(--clr-green)" : "var(--clr-text-faint)", fontSize: "16px", opacity: effectiveOnline ? 1 : 0.4, pointerEvents: effectiveOnline ? "auto" : "none", position: "relative", zIndex: 10, minWidth: "40px", minHeight: "40px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
             <FaPhone />
           </button>
-          <button onClick={() => { console.log("Video call clicked"); handleStartVideoCall(); }} disabled={!effectiveOnline} title="Video Call" style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px 10px", cursor: effectiveOnline ? "pointer" : "not-allowed", color: effectiveOnline ? "#2ECC8F" : "rgba(238,240,247,0.2)", fontSize: "16px", opacity: effectiveOnline ? 1 : 0.4, pointerEvents: effectiveOnline ? "auto" : "none", position: "relative", zIndex: 10, minWidth: "40px", minHeight: "40px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={() => { console.log("Video call clicked"); handleStartVideoCall(); }} disabled={!effectiveOnline} title="Video Call" style={{ background: "none", border: "1px solid var(--clr-border-2)", borderRadius: "8px", padding: "8px 10px", cursor: effectiveOnline ? "pointer" : "not-allowed", color: effectiveOnline ? "var(--clr-green)" : "var(--clr-text-faint)", fontSize: "16px", opacity: effectiveOnline ? 1 : 0.4, pointerEvents: effectiveOnline ? "auto" : "none", position: "relative", zIndex: 10, minWidth: "40px", minHeight: "40px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
             <FaVideo />
           </button>
           {queueSize > 0 && (
-            <span title={`${queueSize} offline message(s) queued`} style={{ fontSize: "10px", color: "#FB923C", display: "flex", alignItems: "center", padding: "0 4px" }}>
+            <span title={`${queueSize} offline message(s) queued`} style={{ fontSize: "10px", color: "var(--clr-orange)", display: "flex", alignItems: "center", padding: "0 4px" }}>
               &#9679;
             </span>
           )}
         </div>
       </div>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+      {/* Messages — subtle dotted wallpaper so the thread has its own backdrop */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: "10px",
+        backgroundImage: "radial-gradient(color-mix(in srgb, var(--clr-text) 7%, transparent) 1px, transparent 1.5px)",
+        backgroundSize: "20px 20px" }}>
         {loading ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "rgba(238,240,247,0.35)" }}>
+          <div style={{ textAlign: "center", padding: "40px", color: "var(--clr-text-faint)" }}>
             <FaSpinner style={{ animation: "spin 1s linear infinite" }} /> {t("chat.loading", "Loading messages...")}
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "rgba(238,240,247,0.35)", fontSize: "12px" }}>
+          <div style={{ textAlign: "center", padding: "40px", color: "var(--clr-text-faint)", fontSize: "12px" }}>
             {t("chat.noMessages", "No messages yet. Start a conversation!")}
           </div>
         ) : (
@@ -623,8 +625,8 @@ export default function ChatBox({
               <div key={msg.id} style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
                 <div style={{
                   maxWidth: "75%", padding: "10px 14px", borderRadius: "14px", fontSize: "13px", lineHeight: "1.5",
-                  backgroundColor: isMine ? "rgba(46,204,143,0.15)" : "rgba(255,255,255,0.06)",
-                  border: `1px solid ${isMine ? "rgba(46,204,143,0.25)" : "rgba(255,255,255,0.07)"}`,
+                  backgroundColor: isMine ? "rgba(46,204,143,0.15)" : "color-mix(in srgb, var(--clr-text) 7%, transparent)",
+                  border: `1px solid ${isMine ? "rgba(46,204,143,0.25)" : "var(--clr-border)"}`,
                   wordBreak: "break-word", opacity: isPending ? 0.7 : 1,
                   position: "relative",
                 }}>
@@ -634,12 +636,12 @@ export default function ChatBox({
                     </a>
                   )}
                   {msg.message && <div>{msg.message}</div>}
-                  <div style={{ fontSize: "9px", color: isPending ? "#FB923C" : "rgba(238,240,247,0.3)", marginTop: "4px", textAlign: "right", display: "flex", alignItems: "center", gap: "4px", justifyContent: "flex-end" }}>
+                  <div style={{ fontSize: "9px", color: isPending ? "var(--clr-orange)" : "var(--clr-text-faint)", marginTop: "4px", textAlign: "right", display: "flex", alignItems: "center", gap: "4px", justifyContent: "flex-end" }}>
                     {formatTime(msg.created_at)}
                     {isPending && <span title="Pending (offline)">&#9679;</span>}
                   </div>
                   {isPending && (
-                    <div style={{ position: "absolute", top: "4px", right: "4px", fontSize: "8px", color: "#FB923C" }}>
+                    <div style={{ position: "absolute", top: "4px", right: "4px", fontSize: "8px", color: "var(--clr-orange)" }}>
                       <FaSpinner style={{ animation: "spin 1s linear infinite" }} />
                     </div>
                   )}
@@ -650,7 +652,7 @@ export default function ChatBox({
         )}
         {otherTyping && (
           <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <div style={{ padding: "10px 14px", borderRadius: "14px", backgroundColor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.07)", display: "inline-flex", alignItems: "center", gap: "4px", color: "rgba(238,240,247,0.5)" }}>
+            <div style={{ padding: "10px 14px", borderRadius: "14px", backgroundColor: "color-mix(in srgb, var(--clr-text) 7%, transparent)", border: "1px solid var(--clr-border)", display: "inline-flex", alignItems: "center", gap: "4px", color: "var(--citizen-faint)" }}>
               <span className="chat-typing-dot" /><span className="chat-typing-dot" /><span className="chat-typing-dot" />
             </div>
           </div>
@@ -660,22 +662,22 @@ export default function ChatBox({
 
       {/* Image Preview */}
       {imagePreview && (
-        <div style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px", backgroundColor: "rgba(8,12,20,0.6)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: "8px", backgroundColor: "var(--clr-surface-2)", borderTop: "1px solid var(--clr-surface)" }}>
           <img src={imagePreview} alt="Preview" style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", cursor: "pointer" }} onClick={() => { setImagePreview(null); setImageFile(null); }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: "11px", fontWeight: "600" }}>{imageFile?.name}</div>
-            <div style={{ fontSize: "9px", color: "rgba(238,240,247,0.35)" }}>{((imageFile?.size ?? 0) / 1024).toFixed(0)} KB</div>
+            <div style={{ fontSize: "9px", color: "var(--clr-text-faint)" }}>{((imageFile?.size ?? 0) / 1024).toFixed(0)} KB</div>
           </div>
-          <button onClick={() => { setImagePreview(null); setImageFile(null); }} style={{ background: "none", border: "none", color: "#EF5B5B", cursor: "pointer", fontSize: "14px" }}><FaTimes /></button>
+          <button onClick={() => { setImagePreview(null); setImageFile(null); }} style={{ background: "none", border: "none", color: "var(--clr-red)", cursor: "pointer", fontSize: "14px" }}><FaTimes /></button>
         </div>
       )}
 
       {/* Input Area */}
-      <form onSubmit={sendMessage} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.07)", backgroundColor: "rgba(8,12,20,0.6)", flexShrink: 0 }}>
-        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px", cursor: uploading ? "not-allowed" : "pointer", color: uploading ? "rgba(238,240,247,0.2)" : "#2ECC8F", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", opacity: uploading ? 0.5 : 1 }} title={t("chat.attachImage", "Attach Image")}><FaImage /></button>
+      <form onSubmit={sendMessage} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 16px", borderTop: "1px solid var(--clr-border)", backgroundColor: "var(--clr-surface-2)", flexShrink: 0 }}>
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ background: "none", border: "1px solid var(--clr-border-2)", borderRadius: "8px", padding: "8px", cursor: uploading ? "not-allowed" : "pointer", color: uploading ? "var(--clr-text-faint)" : "var(--clr-green)", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", opacity: uploading ? 0.5 : 1 }} title={t("chat.attachImage", "Attach Image")}><FaImage /></button>
         <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageSelect} style={{ display: "none" }} disabled={uploading} />
-        <input id="chat-message-input" name="message" type="text" value={inputText} onChange={handleInputChange} placeholder={t("chat.typeMessage", "Type a message...")} style={{ flex: 1, backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "8px 14px", fontSize: "13px", color: "#eef0f7", outline: "none", fontFamily: "inherit" }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) e.preventDefault(); }} />
-        <button type="submit" disabled={sending || uploading || (!inputText.trim() && !imageFile)} style={{ background: sending || uploading ? "rgba(238,240,247,0.05)" : "rgba(46,204,143,0.15)", border: `1px solid ${sending || uploading ? "rgba(238,240,247,0.1)" : "rgba(46,204,143,0.3)"}`, borderRadius: "8px", padding: "8px 12px", cursor: sending || uploading ? "not-allowed" : "pointer", color: sending || uploading ? "rgba(238,240,247,0.3)" : "#2ECC8F", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", opacity: sending || uploading ? 0.5 : 1 }}>
+        <input id="chat-message-input" name="message" type="text" value={inputText} onChange={handleInputChange} placeholder={t("chat.typeMessage", "Type a message...")} style={{ flex: 1, backgroundColor: "var(--clr-surface)", border: "1px solid var(--clr-border-2)", borderRadius: "8px", padding: "8px 14px", fontSize: "13px", color: "var(--clr-text)", outline: "none", fontFamily: "inherit" }} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) e.preventDefault(); }} />
+        <button type="submit" disabled={sending || uploading || (!inputText.trim() && !imageFile)} style={{ background: sending || uploading ? "rgba(238,240,247,0.05)" : "rgba(46,204,143,0.15)", border: `1px solid ${sending || uploading ? "rgba(238,240,247,0.1)" : "rgba(46,204,143,0.3)"}`, borderRadius: "8px", padding: "8px 12px", cursor: sending || uploading ? "not-allowed" : "pointer", color: sending || uploading ? "var(--clr-text-faint)" : "var(--clr-green)", fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", opacity: sending || uploading ? 0.5 : 1 }}>
           {sending ? <FaSpinner style={{ animation: "spin 1s linear infinite" }} /> : <FaPaperPlane />}
         </button>
       </form>

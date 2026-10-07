@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "../js/supabase";
 
 interface ResponderAlert {
@@ -18,12 +18,12 @@ interface ResponderAlert {
   [key: string]: any;
 }
 
-const RESP_ALERT_META: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  danger:   { color: "#EF5B5B", bg: "rgba(239,91,91,0.08)",  border: "rgba(239,91,91,0.2)",  label: "Danger" },
-  critical: { color: "#EF5B5B", bg: "rgba(239,91,91,0.08)",  border: "rgba(239,91,91,0.2)",  label: "Critical" },
-  warning:  { color: "#F5C842", bg: "rgba(245,200,66,0.08)", border: "rgba(245,200,66,0.2)", label: "Warning" },
-  info:     { color: "#5B8DEF", bg: "rgba(91,141,239,0.08)", border: "rgba(91,141,239,0.2)", label: "Info" },
-  success:  { color: "#2ECC8F", bg: "rgba(46,204,143,0.08)", border: "rgba(46,204,143,0.2)", label: "Info" },
+const RESP_ALERT_META: Record<string, { accent: string; accentBg: string; accentBorder: string; label: string }> = {
+  danger:   { accent: "var(--ra-danger)", accentBg: "var(--ra-danger-bg)", accentBorder: "var(--ra-danger-border)", label: "Danger" },
+  critical: { accent: "var(--ra-danger)", accentBg: "var(--ra-danger-bg)", accentBorder: "var(--ra-danger-border)", label: "Critical" },
+  warning:  { accent: "var(--ra-warning)", accentBg: "var(--ra-warning-bg)", accentBorder: "var(--ra-warning-border)", label: "Warning" },
+  info:     { accent: "var(--ra-info)", accentBg: "var(--ra-info-bg)", accentBorder: "var(--ra-info-border)", label: "Info" },
+  success:  { accent: "var(--ra-success)", accentBg: "var(--ra-success-bg)", accentBorder: "var(--ra-success-border)", label: "Info" },
 };
 
 function normalizeAlertType(a: ResponderAlert): string {
@@ -93,15 +93,15 @@ export default function ResponderAlertsPage() {
     };
   }, []);
 
-  if (loading) return <div style={{ padding: 20, color: "rgba(238,240,247,0.4)" }}>Loading alerts…</div>;
-  if (error) return <div style={{ padding: 20, color: "rgba(238,240,247,0.4)" }}>Error: {error}</div>;
-  if (alerts.length === 0) return <div style={{ padding: 20, color: "rgba(238,240,247,0.4)" }}>No alerts.</div>;
+  if (loading) return <div className="ra-state">Loading alerts…</div>;
+  if (error) return <div className="ra-state">Error: {error}</div>;
+  if (alerts.length === 0) return <div className="ra-state">No alerts.</div>;
 
   return (
-    <div style={{ padding: 16, color: "#eef0f7" }}>
-      <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700 }}>Alerts</h3>
-      <p style={{ margin: "0 0 16px", fontSize: 12, color: "rgba(238,240,247,0.5)" }}>Broadcasts from command — title, message, severity &amp; audience</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "65vh", overflowY: "auto", paddingRight: 4 }}>
+    <div className="ra-root">
+      <h3 className="ra-title">Alerts</h3>
+      <p className="ra-sub">Broadcasts from command — title, message, severity &amp; audience</p>
+      <div className="ra-list">
         {alerts.map((alert) => {
           const t = normalizeAlertType(alert);
           const meta = RESP_ALERT_META[t] ?? RESP_ALERT_META.info;
@@ -124,52 +124,50 @@ export default function ResponderAlertsPage() {
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpandedId(isExpanded ? null : alert.id); } }}
               title={isExpanded ? "Click to collapse" : "Click to expand"}
+              className="ra-card"
               style={{
-                background: "rgba(15,21,33,0.82)",
-                border: `1px solid rgba(255,255,255,0.07)`,
-                borderLeft: `3px solid ${meta.color}`,
-                borderRadius: 12,
-                padding: "14px 16px",
-                cursor: "pointer",
-              }}
+                "--ra-accent": meta.accent,
+                "--ra-accent-bg": meta.accentBg,
+                "--ra-accent-border": meta.accentBorder,
+              } as CSSProperties}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#eef0f7", lineHeight: 1.3 }}>{displayTitle}</span>
-                <span style={{ fontSize: 10, color: "rgba(238,240,247,0.4)", whiteSpace: "nowrap" }}>
+              <div className="ra-card-top">
+                <span className="ra-card-title">{displayTitle}</span>
+                <span className="ra-card-time">
                   {new Date(alert.created_at).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
-              <div style={{ fontSize: 13, color: "rgba(238,240,247,0.65)", lineHeight: 1.5, marginBottom: 10, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              <div className="ra-card-msg">
                 {displayMessage || (isExpanded ? "No details provided." : (severityExists ? "" : "No details provided."))}
                 {!isExpanded && displayMessage && displayMessage.length > 120 ? "…" : ""}
               </div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="ra-tags">
                 {severityExists && (
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "3px 8px", borderRadius: 999, background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>
+                  <span className="ra-sev">
                     {meta.label}
                   </span>
                 )}
-                <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 999, background: "rgba(255,255,255,0.04)", color: "rgba(238,240,247,0.5)", border: "1px solid rgba(255,255,255,0.07)", textTransform: "capitalize" }}>
+                <span className="ra-aud">
                   {aud}
                 </span>
                 {!isExpanded && (
-                  <span style={{ fontSize: 10, color: "rgba(238,240,247,0.35)", marginLeft: "auto" }}>Click to expand ▸</span>
+                  <span className="ra-expand-hint">Click to expand ▸</span>
                 )}
               </div>
               {isExpanded && (
-                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "rgba(238,240,247,0.65)", lineHeight: 1.6 }}>
+                <div className="ra-detail">
                   {displayMessage && (
-                    <div><strong style={{ color: "#eef0f7" }}>Message:</strong> <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{displayMessage}</span></div>
+                    <div><strong>Message:</strong> <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{displayMessage}</span></div>
                   )}
-                  <div><strong style={{ color: "#eef0f7" }}>Time:</strong> {new Date(alert.created_at).toLocaleString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
+                  <div><strong>Time:</strong> {new Date(alert.created_at).toLocaleString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
                   {locationText && (
-                    <div><strong style={{ color: "#eef0f7" }}>Location:</strong> {locationText}</div>
+                    <div><strong>Location:</strong> {locationText}</div>
                   )}
                   {reportLink && (
-                    <div><strong style={{ color: "#eef0f7" }}>Report:</strong> <a href={reportLink} onClick={(e) => e.stopPropagation()} style={{ color: "#5B8DEF", textDecoration: "underline" }}>{reportLink}</a></div>
+                    <div><strong>Report:</strong> <a href={reportLink} onClick={(e) => e.stopPropagation()}>{reportLink}</a></div>
                   )}
                   {!locationText && !reportLink && !displayMessage && (
-                    <div style={{ color: "rgba(238,240,247,0.4)" }}>No additional details for this alert.</div>
+                    <div className="ra-detail-empty">No additional details for this alert.</div>
                   )}
                 </div>
               )}

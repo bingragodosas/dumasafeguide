@@ -28,10 +28,10 @@ const ALERT_TYPE_META: Record<string, {
   color: string; bg: string; border: string;
   icon: JSX.Element; label: string;
 }> = {
-  danger:  { color: "#EF5B5B", bg: "rgba(239,91,91,0.08)",  border: "rgba(239,91,91,0.2)",  icon: <FaExclamationTriangle />, label: "Danger"    },
-  warning: { color: "#F5C842", bg: "rgba(245,200,66,0.08)", border: "rgba(245,200,66,0.2)", icon: <FaExclamationTriangle />, label: "Warning"   },
-  info:    { color: "#5B8DEF", bg: "rgba(91,141,239,0.08)", border: "rgba(91,141,239,0.2)", icon: <FaInfoCircle />,          label: "Info"      },
-  success: { color: "#2ECC8F", bg: "rgba(46,204,143,0.08)", border: "rgba(46,204,143,0.2)", icon: <FaCheckCircle />,         label: "All Clear" },
+  danger:  { color: "var(--clr-red)", bg: "var(--clr-red-bg)", border: "var(--clr-red-border)", icon: <FaExclamationTriangle />, label: "Danger"    },
+  warning: { color: "var(--c-pending)", bg: "var(--clr-yellow-bg)", border: "var(--clr-yellow-border)", icon: <FaExclamationTriangle />, label: "Warning"   },
+  info:    { color: "var(--clr-blue)", bg: "var(--clr-blue-bg)", border: "var(--clr-blue-border)", icon: <FaInfoCircle />,          label: "Info"      },
+  success: { color: "var(--clr-green)", bg: "var(--clr-green-bg)", border: "var(--clr-green-border)", icon: <FaCheckCircle />,         label: "All Clear" },
 };
 
 // English fallback labels for alert levels — the rendered label always goes
@@ -161,7 +161,7 @@ const CSS = `
   /* Alert cards */
   .ca-list { display: flex; flex-direction: column; gap: 12px; }
   .ca-card {
-    background: rgba(15,21,33,.82); border: 1px solid rgba(255,255,255,.07);
+    background: var(--citizen-card); border: 1px solid rgba(255,255,255,.07);
     border-left: 3px solid var(--ca-color);
     border-radius: 14px; overflow: hidden;
     transition: border-color .18s, transform .18s;
@@ -198,7 +198,7 @@ const CSS = `
   .ca-empty {
     display: flex; flex-direction: column; align-items: center; gap: 12px;
     padding: 64px 24px; text-align: center;
-    background: rgba(15,21,33,.82); border: 1px dashed rgba(255,255,255,.07);
+    background: var(--citizen-card); border: 1px dashed rgba(255,255,255,.07);
     border-radius: 20px; backdrop-filter: blur(16px);
   }
   .ca-empty-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); display: flex; align-items: center; justify-content: center; font-size: 20px; color: rgba(238,240,247,.2); }
@@ -206,7 +206,7 @@ const CSS = `
   .ca-empty-sub { font-size: 13px; color: rgba(238,240,247,.2); max-width: 290px; line-height: 1.6; }
 
   /* Loading */
-  .ca-loading { display: flex; align-items: center; gap: 10px; padding: 64px; justify-content: center; font-size: 13px; color: rgba(238,240,247,.3); background: rgba(15,21,33,.82); border: 1px solid rgba(255,255,255,.07); border-radius: 20px; backdrop-filter: blur(16px); }
+  .ca-loading { display: flex; align-items: center; gap: 10px; padding: 64px; justify-content: center; font-size: 13px; color: rgba(238,240,247,.3); background: var(--citizen-card); border: 1px solid rgba(255,255,255,.07); border-radius: 20px; backdrop-filter: blur(16px); }
   .ca-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,.1); border-top-color: #2ECC8F; animation: caSpin .75s linear infinite; display: inline-block; flex-shrink: 0; }
   @keyframes caSpin { to{transform:rotate(360deg);} }
 `;
@@ -462,15 +462,15 @@ export default function CitizenAlertsPage() {
                           <FaClock size={9} />
                           {timeAgo(a.created_at)}
                         </span>
-                        {!isExpanded && <span style={{ fontSize: 10, color: "rgba(238,240,247,0.35)", marginLeft: 6 }}>▸</span>}
+                        {!isExpanded && <span style={{ fontSize: 10, color: "var(--citizen-faint)", marginLeft: 6 }}>▸</span>}
                       </div>
                       {isExpanded && (
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "rgba(238,240,247,0.65)", lineHeight: 1.6 }}>
-                          {fullMsg && <div><strong style={{ color: "#eef0f7" }}>Message:</strong> <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{fullMsg}</span></div>}
-                          <div><strong style={{ color: "#eef0f7" }}>Time:</strong> {new Date(a.created_at).toLocaleString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
-                          {loc && <div><strong style={{ color: "#eef0f7" }}>Location:</strong> {loc}</div>}
-                          {reportLink && <div><strong style={{ color: "#eef0f7" }}>Report:</strong> <a href={reportLink} onClick={(e) => e.stopPropagation()} style={{ color: "#5B8DEF", textDecoration: "underline" }}>{reportLink}</a></div>}
-                          {!loc && !reportLink && !fullMsg && <div style={{ color: "rgba(238,240,247,0.4)" }}>No additional details.</div>}
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--clr-border)", display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "var(--citizen-body)", lineHeight: 1.6 }}>
+                          {fullMsg && <div><strong style={{ color: "var(--clr-text)" }}>Message:</strong> <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{fullMsg}</span></div>}
+                          <div><strong style={{ color: "var(--clr-text)" }}>Time:</strong> {new Date(a.created_at).toLocaleString("en-PH", { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}</div>
+                          {loc && <div><strong style={{ color: "var(--clr-text)" }}>Location:</strong> {loc}</div>}
+                          {reportLink && <div><strong style={{ color: "var(--clr-text)" }}>Report:</strong> <a href={reportLink} onClick={(e) => e.stopPropagation()} style={{ color: "var(--clr-blue)", textDecoration: "underline" }}>{reportLink}</a></div>}
+                          {!loc && !reportLink && !fullMsg && <div style={{ color: "var(--citizen-faint)" }}>No additional details.</div>}
                         </div>
                       )}
                     </div>

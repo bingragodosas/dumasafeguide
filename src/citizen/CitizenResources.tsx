@@ -29,9 +29,9 @@ export default function CitizenResources() {
       {/* Main */}
       <div style={{ padding: "28px 32px", minHeight: "100vh" }}>
         <div style={{ marginBottom: "32px" }}>
-          <div style={{ fontSize: "10px", color: "#F5C842", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "8px", fontWeight: "700" }}>● {t("resources.heroTitle")}</div>
-          <h1 style={{ fontSize: "34px", fontWeight: "900", color: "#eef0f7", marginBottom: "6px" }}>{t("resources.heroTitle")} &amp; <span style={{ color: "#F5C842" }}>{t("resources.heroAccent")}</span></h1>
-          <p style={{ fontSize: "12px", color: "rgba(238,240,247,0.35)", letterSpacing: "0.06em" }}>{t("resources.heroSub", "Everything you need to stay informed.").toLocaleUpperCase(locale)}</p>
+          <div style={{ fontSize: "10px", color: "var(--c-pending)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "8px", fontWeight: "700" }}>● {t("resources.heroTitle")}</div>
+          <h1 style={{ fontSize: "34px", fontWeight: "900", color: "var(--clr-text)", marginBottom: "6px" }}>{t("resources.heroTitle")} &amp; <span style={{ color: "var(--c-pending)" }}>{t("resources.heroAccent")}</span></h1>
+          <p style={{ fontSize: "12px", color: "var(--citizen-faint)", letterSpacing: "0.06em" }}>{t("resources.heroSub", "Everything you need to stay informed.").toLocaleUpperCase(locale)}</p>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "16px" }}>
@@ -40,18 +40,18 @@ export default function CitizenResources() {
             const title = t(`resources.cards.${r.id}.title`, r.title);
             const desc = t(`resources.cards.${r.id}.description`, r.desc);
             return (
-              <div key={r.id} style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderTop: `2px solid ${r.accent}`, borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", transition: "all 0.2s" }}>
+              <div key={r.id} style={{ backgroundColor: "var(--citizen-card)", border: "1px solid var(--clr-border)", borderTop: `2px solid ${r.accent}`, borderRadius: "14px", padding: "24px", display: "flex", flexDirection: "column", transition: "all 0.2s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px" }}>
                   <span style={{ fontSize: "28px" }}>{r.icon}</span>
                   <span style={{ fontSize: "9px", fontWeight: "700", letterSpacing: "0.12em", textTransform: "uppercase", color: r.accent, backgroundColor: `${r.accent}18`, border: `1px solid ${r.accent}40`, borderRadius: "3px", padding: "3px 7px" }}>{tag}</span>
                 </div>
-                <div style={{ fontSize: "17px", fontWeight: "800", color: "#eef0f7", marginBottom: "10px" }}>{title}</div>
-                <p style={{ fontSize: "13px", color: "rgba(238,240,247,0.45)", lineHeight: "1.65", marginBottom: "20px", flex: 1 }}>{desc}</p>
-                <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                <div style={{ fontSize: "17px", fontWeight: "800", color: "var(--clr-text)", marginBottom: "10px" }}>{title}</div>
+                <p style={{ fontSize: "13px", color: "var(--citizen-body)", lineHeight: "1.65", marginBottom: "20px", flex: 1 }}>{desc}</p>
+                <div style={{ borderTop: "1px solid var(--clr-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "2px" }}>
                   {r.links.map(l => (
-                    <Link key={l.key} to={l.to} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", fontSize: "12px", color: "rgba(238,240,247,0.35)", textDecoration: "none", borderBottom: "1px solid rgba(255,255,255,0.04)", transition: "color 0.2s" }}
+                    <Link key={l.key} to={l.to} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", fontSize: "12px", color: "var(--citizen-faint)", textDecoration: "none", borderBottom: "1px solid var(--citizen-row-border)", transition: "color 0.2s" }}
                       onMouseEnter={e => (e.currentTarget.style.color = r.accent)}
-                      onMouseLeave={e => (e.currentTarget.style.color = "rgba(238,240,247,0.35)")}>
+                      onMouseLeave={e => (e.currentTarget.style.color = "var(--citizen-faint)")}>
                       <span>{t(`resources.cards.${r.id}.links.${l.key}`, l.label)}</span>
                       <span style={{ fontSize: "12px" }}>→</span>
                     </Link>
@@ -64,8 +64,8 @@ export default function CitizenResources() {
         {/* Emergency CTA */}
         <div style={{ marginTop: "32px", backgroundColor: "rgba(232,55,42,0.07)", border: "1px solid rgba(232,55,42,0.2)", borderRadius: "14px", padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontSize: "16px", fontWeight: "800", color: "#eef0f7", marginBottom: "6px" }}>{t("resources.cta.title")}</div>
-            <p style={{ fontSize: "13px", color: "rgba(238,240,247,0.35)" }}>{t("resources.cta.desc")}</p>
+            <div style={{ fontSize: "16px", fontWeight: "800", color: "var(--clr-text)", marginBottom: "6px" }}>{t("resources.cta.title")}</div>
+            <p style={{ fontSize: "13px", color: "var(--citizen-faint)" }}>{t("resources.cta.desc")}</p>
           </div>
           <Link to="/citizen/report" style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "12px 24px", backgroundColor: "#e8372a", borderRadius: "10px", fontSize: "12px", fontWeight: "700", color: "#fff", textDecoration: "none", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
             🚨 {t("resources.cta.btn")}

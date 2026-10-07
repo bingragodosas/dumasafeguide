@@ -1,144 +1,54 @@
-import React, { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Link } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicLayout   from './components/Publiclayout';
 import { supabase }   from './js/supabase';
 
-// ── Lazy-load with stale-chunk auto-recovery ────────────────────────────────
-// After a new build is deployed, the browser (or installed PWA service worker)
-// can still reference hashed chunk filenames from the previous bundle, so a
-// React.lazy() import rejects with a ChunkLoadError ("Failed to fetch
-// dynamically imported module", 404, "Loading chunk failed", "Unexpected token '<'").
-// This wrapper forces a single page reload so the fresh index.html/chunk manifest
-// is picked up; it also tries to bust the Workbox precache via CacheStorage
-// (when available) before reloading. The sessionStorage flag guarantees we reload
-// at most once and then surface the real error instead of looping forever
-// (e.g. during private/incognito where storage may throw, we still reload once).
-const PAGE_REFRESHED_KEY = 'dsg_chunk_retry_v1';
-
-function isChunkLoadError(error: unknown): boolean {
-  const msg = (error as Error)?.message ?? String(error);
-  return /Failed to fetch dynamically imported module|Loading chunk|ChunkLoadError|Unexpected token '<'|Importing a module script failed/i.test(msg);
-}
-
-const PRESERVED_CACHES = ['google-fonts-cache', 'gfonts-cache', 'supabase-api', 'leaflet-cdn'];
-
-async function bustServiceWorkerCache(): Promise<void> {
-  try {
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      // Only delete Workbox precache / app-shell caches. Preserve long-lived
-      // runtime caches (fonts, leaflet, supabase) so a chunk retry on mobile
-      // data does not force a full refetch of large static assets.
-      const deletable = keys.filter(
-        (k) => !PRESERVED_CACHES.some((keep) => k.includes(keep)),
-      );
-      await Promise.all(deletable.map(k => caches.delete(k)));
-    }
-    // Ask Workbox to skipWaiting if an update is waiting
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      regs.forEach(r => r.update().catch(() => {}));
-    }
-  } catch { /* ignore */ }
-}
-
-function lazyWithRetry<T extends ComponentType<any>>(
-  componentImport: () => Promise<{ default: T }>,
-) {
-  return lazy(async (): Promise<{ default: T }> => {
-    let pageRefreshed = false;
-    try {
-      pageRefreshed = window.sessionStorage.getItem(PAGE_REFRESHED_KEY) === 'true';
-    } catch {
-      pageRefreshed = false;
-    }
-    try {
-      const component = await componentImport();
-      try {
-        window.sessionStorage.setItem(PAGE_REFRESHED_KEY, 'false');
-      } catch { /* storage unavailable — ignore */ }
-      return component;
-    } catch (error) {
-      // Only auto-reload for genuine chunk-load failures, not for render errors
-      if (!isChunkLoadError(error)) throw error;
-      if (!pageRefreshed) {
-        try { window.sessionStorage.setItem(PAGE_REFRESHED_KEY, 'true'); } catch { /* ignore */ }
-        await bustServiceWorkerCache();
-        window.location.reload();
-        // Return a never-resolving promise while reload happens to avoid throwing during unload
-        return new Promise(() => {}) as Promise<{ default: T }>;
-      }
-      throw error;
-    }
-  });
-}
-
-const About = lazyWithRetry(() => import("./pages/About"));
-const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
-const Terms = lazyWithRetry(() => import("./pages/TermsOfUse"));
+// ── Direct (eager) imports — no lazy loading ─────────────────────────────────
+// Every page is bundled up front so in-app navigation renders instantly with
+// no chunk fetch, no Suspense flash, and no stale-chunk recovery reloads.
+import About from "./pages/About";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/TermsOfUse";
 
 // ── Public pages ──────────────────────────────────────────────────────────────
-const Homepage       = lazyWithRetry(() => import('./pages/Homepage'));
-const Login          = lazyWithRetry(() => import('./pages/Login'));
-const Signup         = lazyWithRetry(() => import('./pages/Signup'));
-const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
-const Directory      = lazyWithRetry(() => import('./pages/Directory'));
-const Map            = lazyWithRetry(() => import('./pages/Map'));
-const IncidentAlerts = lazyWithRetry(() => import('./pages/IncidentaAlerts'));
-const SafetyTips     = lazyWithRetry(() => import('./pages/SafetyTips'));   // add if you have it
-const Resources      = lazyWithRetry(() => import('./pages/Resources'));     // add if you have it
-const PartnerAgencies = lazyWithRetry(() => import('./pages/PartnerAgencies'));
+import Homepage from './pages/Homepage';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import Directory from './pages/Directory';
+import Map from './pages/Map';
+import IncidentAlerts from './pages/IncidentaAlerts';
+import SafetyTips from './pages/SafetyTips';
+import Resources from './pages/Resources';
+import PartnerAgencies from './pages/PartnerAgencies';
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
-const AdminDashboard = lazyWithRetry(() => import('./admin/AdminDashboard'));
+import AdminDashboard from './admin/AdminDashboard';
 
 // ── Responder ─────────────────────────────────────────────────────────────────
-const Dispatch            = lazyWithRetry(() => import('./responder/Dispatch'));
-const IncidentsPage       = lazyWithRetry(() => import('./responder/IncidentsPage'));
-const ResponderAlertsPage = lazyWithRetry(() => import('./responder/ResponderAlertsPage'));
-const RespondersDashboard = lazyWithRetry(() => import('./responder/Respondersdashboard'));
-const ResponderTeam       = lazyWithRetry(() => import('./responder/ResponderTeam'));
+import Dispatch from './responder/Dispatch';
+import IncidentsPage from './responder/IncidentsPage';
+import ResponderAlertsPage from './responder/ResponderAlertsPage';
+import RespondersDashboard from './responder/Respondersdashboard';
+import ResponderTeam from './responder/ResponderTeam';
 
 // ── Chat ────────────────────────────────────────────────────────────────
-const ChatPage = lazyWithRetry(() => import('./components/ChatPage'));
+import ChatPage from './components/ChatPage';
 
 // ── Citizen ───────────────────────────────────────────────────────────────────
-const CitizenLayout      = lazyWithRetry(() => import('./citizen/CitizenLayout'));
-const CitizenDashboard   = lazyWithRetry(() => import('./citizen/CitizenDashboard'));
-const CitizenHistoryPage = lazyWithRetry(() => import('./citizen/CitizenHistoryPage'));
-const CitizenAlertsPage  = lazyWithRetry(() => import('./citizen/CitizenAlertsPage'));
-const CitizenMap         = lazyWithRetry(() => import('./citizen/CitizenMap'));
-const CitizenSafetyTips  = lazyWithRetry(() => import('./citizen/CitizenSafetyTips'));
-const CitizenReportPage = lazyWithRetry(() => import("./citizen/CitizenReportPage"));
-const Report = lazyWithRetry(() => import("./pages/Report"));
-const CitizenDirectory   = lazyWithRetry(() => import('./citizen/CitizenDirectory'));
-const CitizenResources   = lazyWithRetry(() => import('./citizen/CitizenResources'));
-const CitizenAbout       = lazyWithRetry(() => import('./citizen/CitizenAbout'));
-const CitizenChatPage    = lazyWithRetry(() => import('./citizen/components/CitizenChatPage'));
-
-// ── Idle preload of most-likely-next routes ─────────────────────────────────
-// After first paint, fetch the chunks the user will probably visit next so
-// in-app navigation feels instant and avoids a Suspense flash on slow mobile.
-// Runs once, off the critical path, and never blocks rendering.
-function preloadCriticalRoutes(): void {
-  try {
-    const idle = (cb: () => void) => {
-      const w = window as unknown as { requestIdleCallback?: (c: () => void, o?: { timeout: number }) => void };
-      if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(cb, { timeout: 3000 });
-      else window.setTimeout(cb, 2000);
-    };
-    idle(() => {
-      // Public entry points — cheap and almost always visited
-      void import('./pages/Homepage');
-      void import('./pages/Login');
-      // Role homes — preloaded so post-login redirect has no second spinner
-      void import('./citizen/CitizenDashboard');
-      void import('./responder/Respondersdashboard');
-      void import('./admin/AdminDashboard');
-    });
-  } catch { /* ignore */ }
-}
+import CitizenLayout from './citizen/CitizenLayout';
+import CitizenDashboard from './citizen/CitizenDashboard';
+import CitizenHistoryPage from './citizen/CitizenHistoryPage';
+import CitizenAlertsPage from './citizen/CitizenAlertsPage';
+import CitizenMap from './citizen/CitizenMap';
+import CitizenSafetyTips from './citizen/CitizenSafetyTips';
+import CitizenReportPage from "./citizen/CitizenReportPage";
+import Report from "./pages/Report";
+import CitizenDirectory from './citizen/CitizenDirectory';
+import CitizenResources from './citizen/CitizenResources';
+import CitizenAbout from './citizen/CitizenAbout';
+import CitizenChatPage from './citizen/components/CitizenChatPage';
 
 function NotFound() {
   return (
@@ -253,18 +163,12 @@ export default function App() {
     return () => { cancelled = true; authListener?.subscription?.unsubscribe(); };
   }, []);
 
-  // Preload likely-next chunks off the critical path (once, after mount)
-  useEffect(() => {
-    preloadCriticalRoutes();
-  }, []);
-
   if (loading) return <Loader />;
 
   return (
     <HashRouter>
       <ErrorBoundary>
-        <Suspense fallback={<Loader />}>
-          <Routes>
+        <Routes>
 
           {/* ── Public pages — all get Navbar + Footer via PublicLayout ──── */}
           <Route path="/" element={
@@ -364,11 +268,10 @@ export default function App() {
               <Route path="/privacy" element={<PublicLayout><PrivacyPolicy /></PublicLayout>} />
               <Route path="/terms" element={<PublicLayout><Terms /></PublicLayout>} />
               <Route path="/report" element={<PublicLayout><Report /></PublicLayout>} />
-          {/* ── Catch-all — explicit 404 so bad URLs / stale chunks are visible ── */}
+          {/* ── Catch-all — explicit 404 so bad URLs are visible ── */}
           <Route path="*" element={<NotFound />} />
 
         </Routes>
-        </Suspense>
       </ErrorBoundary>
     </HashRouter>
   );

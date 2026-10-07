@@ -9,7 +9,7 @@ const ResponderIncidentsPage = lazy(() => import("./IncidentsPage"));
 const ResponderTeamPage = lazy(() => import("./ResponderTeam"));
 const ResponderChatDrawer = lazy(() => import("./components/ResponderChatDrawer"));
 const ResponderCitizenChatDrawer = lazy(() => import("./components/ResponderCitizenChatDrawer"));
-const GlobalResponderCallHandler = lazy(() => import("./components/GlobalResponderCallHandler"));
+import GlobalResponderCallHandler from "./components/GlobalResponderCallHandler";
 import { fetchUnreadCounts } from "../hooks/useRealtimeChat";
 import { useDepartmentNotifications } from "../hooks/useDepartmentNotifications";
 import { usePresence } from "../hooks/usePresence";
@@ -17,7 +17,7 @@ import { useHeartbeat, markOffline } from "../hooks/useHeartbeat";
 import dsgLogo from "../assets/dsg.logo.png";
 
 const ResponderLazyFallback = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: "rgba(238,240,247,0.35)", fontSize: 13 }}>
+  <div className="rd-fallback" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, fontSize: 13 }}>
     Loading...
   </div>
 );
@@ -991,12 +991,7 @@ export default function RespondersDashboard() {
                   onClick={() => { setIsChatOpen(true); setChatUnread(0); }}
                   aria-label="Open HQ direct chat"
                   title="HQ Direct Chat"
-                  style={{
-                    position: "relative", display: "flex", alignItems: "center", gap: 6,
-                    background: "rgba(46,204,143,0.12)", border: "1px solid rgba(46,204,143,0.35)",
-                    color: "#2ECC8F", borderRadius: 8, padding: "7px 12px",
-                    fontSize: 12, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap",
-                  }}
+                  className="rd-hq-btn"
                 >
                   <span style={{ fontSize: 14 }}>💬</span> HQ Direct Chat
                   {chatUnread > 0 && (
@@ -1032,28 +1027,28 @@ export default function RespondersDashboard() {
                 {view === "team"      && <ResponderTeamPage />}
                 {view === "citizenChat" && (
                   <div style={{ maxWidth: 900, margin: "0 auto" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, padding: "14px 18px", background: "rgba(15,21,33,0.82)", border: "1px solid rgba(46,204,143,0.15)", borderLeft: "3px solid #2ECC8F", borderRadius: 12 }}>
+                    <div className="rd-cc-banner">
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, color: "#2ECC8F", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Centralized Communications</div>
-                        <div style={{ fontSize: 13, color: "rgba(238,240,247,0.65)" }}>
-                          All <strong style={{ color: "#eef0f7" }}>online citizens</strong> and assigned cases appear here. Chat, audio, or video call any citizen — they will be notified instantly and can respond to request assistance.
+                        <div className="rd-cc-eyebrow">Centralized Communications</div>
+                        <div className="rd-cc-text">
+                          All <strong>online citizens</strong> and assigned cases appear here. Chat, audio, or video call any citizen — they will be notified instantly and can respond to request assistance.
                         </div>
                       </div>
                       <button
                         onClick={() => setCitizenChatOpen(true)}
-                        style={{ background: "rgba(46,204,143,0.16)", border: "1px solid rgba(46,204,143,0.35)", color: "#2ECC8F", borderRadius: 8, padding: "10px 16px", fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                        className="rd-cc-open-btn"
                       >
                         💬 Open Citizen Chat
                       </button>
                     </div>
                     {!citizenChatOpen && (
-                      <div style={{ textAlign: "center", padding: "32px 20px", background: "rgba(15,21,33,0.6)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, color: "rgba(238,240,247,0.45)", fontSize: 12 }}>
-                        Click <strong style={{ color: "#2ECC8F" }}>Open Citizen Chat</strong> to see the full conversation list. Citizens who message you also appear automatically in the drawer as <em>Requests</em>.
-                        <div style={{ marginTop: 8, fontSize: 11, color: "rgba(238,240,247,0.3)" }}>Responder is on duty — citizens online can see you as available.</div>
+                      <div className="rd-cc-empty">
+                        Click <strong>Open Citizen Chat</strong> to see the full conversation list. Citizens who message you also appear automatically in the drawer as <em>Requests</em>.
+                        <div className="rd-cc-empty-sub">Responder is on duty — citizens online can see you as available.</div>
                       </div>
                     )}
                     {citizenChatOpen && (
-                      <div style={{ textAlign: "center", padding: "16px", color: "rgba(238,240,247,0.35)", fontSize: 11 }}>
+                      <div className="rd-cc-hint">
                         Drawer is open — use the panel on the right to select a citizen. Close it to return here.
                       </div>
                     )}

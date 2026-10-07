@@ -6,6 +6,7 @@ import logoImage from "../assets/dsg.logo.png";
 import directorybg from "../assets/directorybg.png";
 import { useLanguage } from "../context/LanguageContext";
 import TurnstileWidget from "../components/TurnstileWidget";
+import { useTheme } from "../context/ThemeContext";
 
 // ── CSS-in-JS ──
 const CSS = `
@@ -664,6 +665,7 @@ function IconLock() {
 export default function Login() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { isLight } = useTheme();
 
   // ── State ─────────────────────────────────────────────────────────────
   const [email, setEmail]           = useState("");
@@ -749,7 +751,11 @@ export default function Login() {
       setError(t("login.errors.captchaLoading", "Security check is still loading. Please wait a moment and try again."));
       return;
     }
-    if (!captchaToken) {
+    // If the widget itself failed to load (status "error"), don't brick the
+    // login: attempt auth without a token and let Supabase decide. When
+    // captcha protection is enabled server-side it will reject with a clear
+    // error; when it isn't, the user gets in.
+    if (!captchaToken && captchaStatus !== "error") {
       setError(
         captchaMsg ||
           t("login.errors.needCaptcha", "Please complete the CAPTCHA to verify you're human.")
@@ -982,6 +988,7 @@ export default function Login() {
                   <TurnstileWidget
                     key={turnstileKey}
                     className="lg-turnstile-box"
+                    theme={isLight ? "light" : "dark"}
                     onToken={(token) => {
                       setTurnstileToken(token);
                       setCaptchaToken(token);
@@ -1003,26 +1010,17 @@ export default function Login() {
                     onReady={() => setCaptchaStatus("ready")}
                   />
                   {captchaStatus === "loading" && !turnstileToken && (
-                    <div style={{ fontSize: 12, color: "rgba(168,216,255,0.55)", marginTop: 8 }}>
+                    <div className="lg-captcha-hint">
                       {t("login.captchaLoading", "Loading security check…")}
                     </div>
                   )}
                   {captchaMsg && (
-                    <div style={{ fontSize: 12, color: "#ffb4a6", marginTop: 8, textAlign: "center", maxWidth: 320 }}>
+                    <div className="lg-captcha-err">
                       {captchaMsg}{" "}
                       <button
                         type="button"
                         onClick={retryCaptcha}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#00c8e0",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          padding: 0,
-                          marginLeft: 4,
-                        }}
+                        className="lg-captcha-retry"
                       >
                         {t("login.captchaRetry", "Retry")}
                       </button>

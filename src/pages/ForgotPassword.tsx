@@ -432,7 +432,7 @@ const ForgotPassword = () => {
                       autoFocus
                     />
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(168,216,255,0.35)', marginTop: '6px' }}>
+                  <div className="fp-hint">
                     We'll send a link and, if enabled, a 6-digit code.
                   </div>
                 </div>
@@ -466,7 +466,7 @@ const ForgotPassword = () => {
                       autoFocus
                     />
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(168,216,255,0.35)', marginTop: '6px' }}>
+                  <div className="fp-hint">
                     Didn't get a code? Check spam or resend. You can also just click the link in the email — it will auto-advance.
                   </div>
                 </div>
@@ -559,7 +559,7 @@ const ForgotPassword = () => {
                       {showConfirmPw ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
                     </button>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'rgba(168,216,255,0.35)', marginTop: '6px' }}>
+                  <div className="fp-hint">
                     Must be at least 6 characters.
                   </div>
                 </div>

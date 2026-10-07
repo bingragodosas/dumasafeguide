@@ -56,7 +56,7 @@ function incidentColor(status: string): string {
 function unitTag(u: FieldUnit): { label: string; color: string } {
   if (u.status === "responding") return { label: "En Route", color: "#FF9500" };
   if (u.status === "on_duty") return { label: "On Duty", color: "#00B074" };
-  return { label: "Off Duty", color: "rgba(238,240,247,0.4)" };
+  return { label: "Off Duty", color: "var(--text-tertiary, rgba(238,240,247,0.4))" };
 }
 
 export default function AdminDispatch() {
@@ -221,7 +221,7 @@ export default function AdminDispatch() {
 
       {/* ── Shared STATUS / TYPE filter pills (mirrors responder view) ── */}
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(238,240,247,0.4)" }}>STATUS</span>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-tertiary, rgba(238,240,247,0.4))" }}>STATUS</span>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {STATUS_FILTERS.map(s => {
             const n = s === "all" ? reports.length : reports.filter(r => r.status === s).length;
@@ -233,7 +233,7 @@ export default function AdminDispatch() {
                   fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 16, cursor: "pointer",
                   background: filterStatus === s ? "rgba(0,102,255,0.15)" : "transparent",
                   border: `1px solid ${filterStatus === s ? "rgba(0,102,255,0.5)" : "rgba(255,255,255,0.1)"}`,
-                  color: filterStatus === s ? "#4A90D9" : "rgba(238,240,247,0.55)",
+                  color: filterStatus === s ? "#4A90D9" : "var(--text-secondary, rgba(238,240,247,0.55))",
                 }}
               >
                 {s === "all" ? "All" : s === "in-progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)} ({n})
@@ -241,7 +241,7 @@ export default function AdminDispatch() {
             );
           })}
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(238,240,247,0.4)" }}>TYPE</span>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-tertiary, rgba(238,240,247,0.4))" }}>TYPE</span>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {TYPE_FILTERS.map(t => {
             const n = t === "all" ? reports.length : reports.filter(r => (r.type ?? "other").toLowerCase() === t).length;
@@ -253,7 +253,7 @@ export default function AdminDispatch() {
                   fontSize: 11, fontWeight: 700, padding: "6px 12px", borderRadius: 16, cursor: "pointer", textTransform: "capitalize",
                   background: filterType === t ? "rgba(0,176,116,0.12)" : "transparent",
                   border: `1px solid ${filterType === t ? "rgba(0,176,116,0.5)" : "rgba(255,255,255,0.1)"}`,
-                  color: filterType === t ? "#00B074" : "rgba(238,240,247,0.55)",
+                  color: filterType === t ? "#00B074" : "var(--text-secondary, rgba(238,240,247,0.55))",
                 }}
               >
                 {t === "all" ? "All" : t} ({n})
@@ -298,7 +298,7 @@ export default function AdminDispatch() {
               </Marker>
             ))}
           </DispatchMap>
-          <div style={{ display: "flex", gap: 12, padding: "10px 16px", fontSize: 11, color: "rgba(238,240,247,0.6)", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, padding: "10px 16px", fontSize: 11, color: "var(--text-secondary, rgba(238,240,247,0.6))", flexWrap: "wrap" }}>
             <span><span style={{ color: "#FF3B30" }}>●</span> Urgent / Pending</span>
             <span><span style={{ color: "#FF9500" }}>●</span> Warning / In Progress</span>
             <span><span style={{ color: "#4A90D9" }}>●</span> Info / Resolved</span>
@@ -324,11 +324,11 @@ export default function AdminDispatch() {
                   return (
                     <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
                       <span style={{ width: 8, height: 8, borderRadius: "50%", background: tag.color, boxShadow: `0 0 6px ${tag.color}`, flexShrink: 0 }} />
-                      <span style={{ flex: 1, color: "#eef0f7", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ flex: 1, color: "var(--text, #eef0f7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {u.full_name || "Unit"}
                       </span>
                       <span style={{ color: tag.color, fontSize: 10, fontWeight: 700 }}>{tag.label}</span>
-                      <span style={{ color: "rgba(238,240,247,0.35)", fontSize: 10 }}>{fmtAgo(u.location_updated_at)}</span>
+                      <span style={{ color: "var(--text-tertiary, rgba(238,240,247,0.35))", fontSize: 10 }}>{fmtAgo(u.location_updated_at)}</span>
                     </div>
                   );
                 })}
@@ -340,7 +340,7 @@ export default function AdminDispatch() {
             <div className="hud-panel-head">
               <span className="hud-panel-title">Manual Dispatch</span>
             </div>
-            <label style={{ display: "block", fontSize: 11, color: "rgba(238,240,247,0.55)", marginBottom: 4 }}>Unassigned incident</label>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-secondary, rgba(238,240,247,0.55))", marginBottom: 4 }}>Unassigned incident</label>
             <select value={selIncident} onChange={e => setSelIncident(e.target.value)} className="hud-select" style={{ width: "100%", marginBottom: 10 }}>
               <option value="">Select incident… ({unassigned.length} pending)</option>
               {unassigned.map(r => (
@@ -349,7 +349,7 @@ export default function AdminDispatch() {
                 </option>
               ))}
             </select>
-            <label style={{ display: "block", fontSize: 11, color: "rgba(238,240,247,0.55)", marginBottom: 4 }}>Available unit</label>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-secondary, rgba(238,240,247,0.55))", marginBottom: 4 }}>Available unit</label>
             <select value={selUnit} onChange={e => setSelUnit(e.target.value)} className="hud-select" style={{ width: "100%", marginBottom: 12 }}>
               <option value="">Select unit… ({available.length} available)</option>
               {available.map(u => (
@@ -388,16 +388,16 @@ export default function AdminDispatch() {
             style={{ width: "100%", maxWidth: 440, background: "#0f1623", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: 22 }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#eef0f7", marginBottom: 4, textTransform: "capitalize" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text, #eef0f7)", marginBottom: 4, textTransform: "capitalize" }}>
               {(pinIncident.type || "other").replace(/_/g, " ")} #{String(pinIncident.id).slice(0, 8)}
             </div>
-            <div style={{ fontSize: 12, color: "rgba(238,240,247,0.55)", marginBottom: 4 }}>
+            <div style={{ fontSize: 12, color: "var(--text-secondary, rgba(238,240,247,0.55))", marginBottom: 4 }}>
               {pinIncident.address || pinIncident.location || "No location"}
             </div>
-            <div style={{ fontSize: 11, color: "rgba(238,240,247,0.4)", marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: "var(--text-tertiary, rgba(238,240,247,0.4))", marginBottom: 14 }}>
               Status: {pinIncident.status} · Reporter: {pinIncident.reporter_name || "Anonymous"}
             </div>
-            <label style={{ display: "block", fontSize: 11, color: "rgba(238,240,247,0.55)", marginBottom: 4 }}>Assign unit</label>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-secondary, rgba(238,240,247,0.55))", marginBottom: 4 }}>Assign unit</label>
             <select value={pinUnit} onChange={e => setPinUnit(e.target.value)} className="hud-select" style={{ width: "100%", marginBottom: 12 }}>
               <option value="">Select unit… ({available.length} available)</option>
               {available.map(u => (

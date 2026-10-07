@@ -1,26 +1,27 @@
 // src/citizen/CitizenDashboard.tsx
-import { lazy, Suspense, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { supabase } from "../js/supabase";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  FaFileAlt,
+  FaFileAlt, FaPen, FaFolderOpen, FaBell, FaMapMarkedAlt, FaLightbulb, FaComments,
+  FaFire, FaCarCrash, FaWater, FaShieldAlt, FaBriefcaseMedical, FaExclamationCircle,
   FaCheckCircle, FaClock, FaSpinner, FaExclamationTriangle,
-  FaTimes, FaInfoCircle,
+  FaTimes, FaInfoCircle, FaInbox, FaBellSlash,
 } from "react-icons/fa";
 import pagesBackground from "../assets/pagesbackground.png";
+import {
+  Eyebrow, PageTitle, Card, SectionHead, Stat, StatusPill,
+  Tile, QuickAction, EmptyState, SkeletonRows, Banner,
+} from "./components/ui";
 
-const CitizenSafetyTips = lazy(() => import("./CitizenSafetyTips"));
-const CitizenAlertsPage = lazy(() => import("./CitizenAlertsPage"));
-const CitizenReport = lazy(() => import("./CitizenReport"));
-const CitizenReportDetail = lazy(() => import("./CitizenReportDetail"));
-const CitizenMap = lazy(() => import("./CitizenMap"));
-
-const LazyFallback = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 40, color: "rgba(238,240,247,0.35)", fontSize: 13 }}>
-    Loading...
-  </div>
-);
+// Direct imports — no lazy loading, modals open instantly.
+import CitizenSafetyTips from "./CitizenSafetyTips";
+import CitizenAlertsPage from "./CitizenAlertsPage";
+import CitizenReport from "./CitizenReport";
+import CitizenReportDetail from "./CitizenReportDetail";
+import CitizenMap from "./CitizenMap";
 
 interface Report {
   id: string;
@@ -48,26 +49,26 @@ type ModalView = null | "safetytips" | "alerts" | "report" | "reportdetail" | "m
 
 const ALERTS_READ_KEY = "cd_alerts_last_read";
 
-const TYPE_META: Record<string, { icon: string; color: string }> = {
-  fire:     { icon: "🔥", color: "#FF6B6B" },
-  accident: { icon: "🚗", color: "#F5C842" },
-  flood:    { icon: "🌊", color: "#5B8DEF" },
-  crime:    { icon: "🚨", color: "#EF5B5B" },
-  medical:  { icon: "🏥", color: "#2ECC8F" },
-  other:    { icon: "⚠️", color: "rgba(238,240,247,0.4)" },
+const TYPE_META: Record<string, { icon: ReactNode; color: string }> = {
+  fire:     { icon: <FaFire size={14} />,              color: "var(--c-fire)" },
+  accident: { icon: <FaCarCrash size={14} />,          color: "var(--c-accident)" },
+  flood:    { icon: <FaWater size={14} />,             color: "var(--c-flood)" },
+  crime:    { icon: <FaShieldAlt size={14} />,         color: "var(--c-crime)" },
+  medical:  { icon: <FaBriefcaseMedical size={14} />,  color: "var(--c-medical)" },
+  other:    { icon: <FaExclamationCircle size={14} />, color: "var(--c-other)" },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:       { label: "PENDING",     color: "#EF5B5B", bg: "rgba(239,91,91,0.08)",  border: "rgba(239,91,91,0.25)"  },
-  "in-progress": { label: "IN PROGRESS", color: "#F5C842", bg: "rgba(245,200,66,0.08)", border: "rgba(245,200,66,0.25)" },
-  resolved:      { label: "RESOLVED",    color: "#2ECC8F", bg: "rgba(46,204,143,0.08)", border: "rgba(46,204,143,0.25)" },
+  pending:       { label: "PENDING",     color: "var(--c-pending)",  bg: "var(--clr-yellow-bg)",  border: "var(--clr-yellow-border)"  },
+  "in-progress": { label: "IN PROGRESS", color: "var(--c-progress)", bg: "var(--clr-blue-bg)",    border: "var(--clr-blue-border)"   },
+  resolved:      { label: "RESOLVED",    color: "var(--c-resolved)", bg: "var(--clr-green-bg)",   border: "var(--clr-green-border)"  },
 };
 
 const ALERT_TYPE_META: Record<string, { color: string; bg: string; border: string; label: string; icon: JSX.Element }> = {
-  danger:  { color: "#EF5B5B", bg: "rgba(239,91,91,0.08)",  border: "rgba(239,91,91,0.2)",  label: "Danger",    icon: <FaExclamationTriangle /> },
-  warning: { color: "#F5C842", bg: "rgba(245,200,66,0.08)", border: "rgba(245,200,66,0.2)", label: "Warning",   icon: <FaExclamationTriangle /> },
-  info:    { color: "#5B8DEF", bg: "rgba(91,141,239,0.08)", border: "rgba(91,141,239,0.2)", label: "Info",      icon: <FaInfoCircle /> },
-  success: { color: "#2ECC8F", bg: "rgba(46,204,143,0.08)", border: "rgba(46,204,143,0.2)", label: "All Clear", icon: <FaCheckCircle /> },
+  danger:  { color: "var(--clr-red)", bg: "var(--clr-red-bg)", border: "var(--clr-red-border)", label: "Danger", icon: <FaExclamationTriangle /> },
+  warning: { color: "var(--c-pending)", bg: "var(--clr-yellow-bg)", border: "var(--clr-yellow-border)", label: "Warning", icon: <FaExclamationTriangle /> },
+  info:    { color: "var(--clr-blue)", bg: "var(--clr-blue-bg)", border: "var(--clr-blue-border)", label: "Info", icon: <FaInfoCircle /> },
+  success: { color: "var(--clr-green)", bg: "var(--clr-green-bg)", border: "var(--clr-green-border)", label: "All Clear", icon: <FaCheckCircle /> },
 };
 
 const TYPE_LIST = ["fire", "flood", "medical", "crime", "accident", "other"];
@@ -122,14 +123,17 @@ export default function CitizenDashboard() {
   const isMobile = useIsMobile();
 
   // Language-aware status-pill text (status.* in the dictionary, English fallback).
-  const statusLabel = (s: string) =>
-    t(`status.${s === "in-progress" ? "inProgress" : s}`, STATUS_META[s]?.label ?? s);
+  // Normalized + fallback so unknown/cased DB values never render unstyled (dim).
+  const statusLabel = (s: string) => {
+    const key = (s ?? "").toLowerCase().trim();
+    return t(`status.${key === "in-progress" ? "inProgress" : key}`, STATUS_META[key]?.label ?? s);
+  };
   // Language-aware alert-level badge text.
   const levelLabel = (level: string) =>
     t(`alerts.levels.${level}`, ALERT_TYPE_META[level]?.label ?? level);
   // Language-aware report-type name (report.types.* in the dictionary).
   const typeLabel = (type: string | undefined) =>
-    t(`report.types.${type?.toLowerCase()}`, type ?? "");
+    t(`report.types.${type?.toLowerCase().trim()}`, type ?? "");
   // Language-aware relative timestamp — computed every render, never cached.
   const formatRelativeLocal = (ts: string) => {
     const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -255,19 +259,19 @@ export default function CitizenDashboard() {
   const firstName   = displayName.split(" ")[0];
 
   const statCards = [
-    { label: t("dashboard.statTotalFiled"),  value: stats.total,      accent: "#4A90E2", icon: <FaFileAlt />,            },
-    { label: t("dashboard.statPending"),      value: stats.pending,    accent: "#EF5B5B", icon: <FaExclamationTriangle />, },
-    { label: t("dashboard.statInProgress"),  value: stats.inProgress, accent: "#F5C842", icon: <FaSpinner />,             },
-    { label: t("dashboard.statResolved"),     value: stats.resolved,   accent: "#2ECC8F", icon: <FaCheckCircle />,         },
+    { label: t("dashboard.statTotalFiled"),  value: stats.total,      accent: "var(--clr-blue)", icon: <FaFileAlt size={15} />,            },
+    { label: t("dashboard.statPending"),      value: stats.pending,    accent: "var(--c-pending)",  icon: <FaExclamationTriangle size={15} />, },
+    { label: t("dashboard.statInProgress"),  value: stats.inProgress, accent: "var(--c-progress)", icon: <FaSpinner size={15} />,             },
+    { label: t("dashboard.statResolved"),     value: stats.resolved,   accent: "var(--c-resolved)", icon: <FaCheckCircle size={15} />,         },
   ];
 
   const quickActions = [
-    { label: t("dashboard.quickActionFileReport"), icon: "📝", modal: "report" as const },
-    { label: t("dashboard.quickActionSafetyMap"),  icon: "🗺️",  modal: "map" as const },
-    { label: t("dashboard.quickActionMyReports"),  icon: "📂", to: "/citizen/history"   },
-    { label: t("dashboard.quickActionAlerts", "Alerts"), icon: "🔔", to: "/citizen/alerts" },
-    { label: t("dashboard.quickActionSafetyTips"), icon: "💡", modal: "safetytips" as const },
-    { label: t("dashboard.quickActionChat"), icon: "💬", to: "/citizen/chat" },
+    { label: t("dashboard.quickActionFileReport"), icon: <FaPen size={14} />,           modal: "report" as const },
+    { label: t("dashboard.quickActionSafetyMap"),  icon: <FaMapMarkedAlt size={14} />,  modal: "map" as const },
+    { label: t("dashboard.quickActionMyReports"),  icon: <FaFolderOpen size={14} />,    to: "/citizen/history" as const },
+    { label: t("dashboard.quickActionAlerts", "Alerts"), icon: <FaBell size={14} />,    to: "/citizen/alerts" as const },
+    { label: t("dashboard.quickActionSafetyTips"), icon: <FaLightbulb size={14} />,     modal: "safetytips" as const },
+    { label: t("dashboard.quickActionChat"),       icon: <FaComments size={14} />,       to: "/citizen/chat" as const },
   ];
 
   const handleViewAllAlerts = () => {
@@ -300,158 +304,142 @@ export default function CitizenDashboard() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundImage: `linear-gradient(rgba(8,12,20,0.93), rgba(8,12,20,0.93)), url(${pagesBackground})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", backgroundRepeat: "no-repeat", backgroundColor: "#080c14", color: "#eef0f7", fontFamily: "'Instrument Sans', sans-serif" }}>
-
+    <div
+      className="dsg-page"
+      style={{ "--dsg-page-photo": `url(${pagesBackground})`, fontFamily: "'Instrument Sans', sans-serif" } as React.CSSProperties}
+    >
       {/* Sidebar + mobile nav are provided by the persistent CitizenLayout. */}
 
-      <div style={{
-        padding: isMobile ? "16px 16px 90px" : "24px",
-        minHeight: "100vh",
-      }}>
+      <div className="dsg-wrap" style={{ paddingBottom: isMobile ? 96 : undefined }}>
 
         <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontSize: "10px", color: "#2ECC8F", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: "6px", fontWeight: "700" }}>{t("dashboard.portalLabel")}</div>
-          <h1 style={{ fontSize: isMobile ? "28px" : "38px", fontWeight: "900", marginBottom: "4px", color: "#eef0f7" }}>
-            {t("dashboard.welcomeTitle").replace("{name}", firstName)}
-          </h1>
-          <p style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", letterSpacing: "0.12em" }}>{t("dashboard.dumagueteCity")}</p>
+          <Eyebrow>{t("dashboard.portalLabel")}</Eyebrow>
+          <PageTitle>{t("dashboard.welcomeTitle").replace("{name}", firstName)}</PageTitle>
+          <p className="dsg-sub">{t("dashboard.dumagueteCity")}</p>
         </div>
 
         {stats.pending > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", backgroundColor: "rgba(245,200,66,0.06)", border: "1px solid rgba(245,200,66,0.2)", borderLeft: "3px solid #F5C842", borderRadius: "8px", padding: "12px 14px", marginBottom: "20px", flexWrap: "wrap" }}>
-            <span style={{ color: "#F5C842" }}>⚠️</span>
-            <span
-              style={{ fontSize: "13px", color: "rgba(238,240,247,0.55)", flex: 1, minWidth: "120px" }}
-              dangerouslySetInnerHTML={{ __html: pendingHtml }}
-            />
-            <Link to="/citizen/history" style={{ fontSize: "11px", fontWeight: "700", color: "#F5C842", textDecoration: "none", border: "1px solid rgba(245,200,66,0.3)", borderRadius: "6px", padding: "5px 12px" }}>{t("dashboard.view")}</Link>
-          </div>
+          <Banner
+            icon={<FaExclamationTriangle />}
+            action={<Link className="dsg-btn-outline" to="/citizen/history">{t("dashboard.view")}</Link>}
+          >
+            <span dangerouslySetInnerHTML={{ __html: pendingHtml }} />
+          </Banner>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: "10px", marginBottom: "16px" }}>
+        <div className="dsg-stat-grid">
           {statCards.map(c => (
-            <div key={c.label} style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: isMobile ? "14px" : "20px", borderTop: `2px solid ${c.accent}` }}>
-              <div style={{ fontSize: "14px", marginBottom: "8px" }}>{c.icon}</div>
-              <div style={{ fontSize: isMobile ? "26px" : "32px", fontWeight: "900", marginBottom: "4px", color: c.accent }}>{loading ? "—" : c.value}</div>
-              <div style={{ fontSize: "9px", color: "rgba(238,240,247,0.28)", letterSpacing: "0.10em", textTransform: "uppercase", fontWeight: "600" }}>{c.label}</div>
-            </div>
+            <Stat key={c.label} icon={c.icon} value={c.value} label={c.label} accent={c.accent} loading={loading} />
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "20px" }}>
+        <div className="dsg-qa-grid">
           {quickActions.map(q =>
             "modal" in q && q.modal ? (
-              <button
-                key={q.label}
-                onClick={() => setModalView(q.modal)}
-                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "10px", fontSize: "12px", fontWeight: "600", color: "rgba(238,240,247,0.65)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
-              >
-                <span style={{ fontSize: "18px" }}>{q.icon}</span>
-                {q.label}
-              </button>
+              <QuickAction key={q.label} icon={q.icon} label={q.label} onClick={() => setModalView(q.modal)} />
             ) : (
-              <Link key={q.to} to={q.to as string} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "10px", fontSize: "12px", fontWeight: "600", color: "rgba(238,240,247,0.65)", textDecoration: "none" }}>
-                <span style={{ fontSize: "18px" }}>{q.icon}</span>
-                {q.label}
-              </Link>
+              <QuickAction key={q.to} icon={q.icon} label={q.label} to={q.to as string} />
             )
           )}
         </div>
 
-        <div style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "16px", marginBottom: "16px" }}>
-          <h2 style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "14px" }}>{t("dashboard.recentReportsTitle")}</h2>
-          {reports.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px 16px", fontSize: "11px", color: "rgba(238,240,247,0.28)" }}>
-              <p>{t("dashboard.noReportsYet")}</p>
-              <button
-                onClick={openFileReport}
-                style={{ marginTop: "10px", fontSize: "11px", fontWeight: "700", color: "#2ECC8F", background: "none", border: "none", cursor: "pointer", display: "inline-block", fontFamily: "inherit" }}
-              >
-                {t("dashboard.fileAReport")}
-              </button>
-            </div>
+        <Card style={{ marginBottom: 16 }}>
+          <SectionHead title={t("dashboard.recentReportsTitle")} />
+          {loading ? (
+            <SkeletonRows rows={3} />
+          ) : reports.length === 0 ? (
+            <EmptyState
+              icon={<FaInbox />}
+              title={t("dashboard.noReportsYet")}
+              actionLabel={t("dashboard.fileAReport")}
+              onAction={openFileReport}
+            />
           ) : (
-            reports.slice(0, 6).map(r => (
-              <div key={r.id} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }} onClick={() => openReportDetail(r.id)}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                  <div style={{ width: "34px", height: "34px", minWidth: "34px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                    {TYPE_META[r.type?.toLowerCase()]?.icon || "⚠️"}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "13px", fontWeight: "700", textTransform: "capitalize", marginBottom: "2px", color: TYPE_META[r.type?.toLowerCase()]?.color || "rgba(238,240,247,0.4)" }}>{typeLabel(r.type)}</div>
-                    <div style={{ fontSize: "11px", color: "rgba(238,240,247,0.45)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", marginBottom: "5px" }}>{r.description || t("reportDetail.noDescription", "No description")}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "9px", padding: "2px 7px", borderRadius: "5px", border: "1px solid", backgroundColor: STATUS_META[r.status]?.bg, color: STATUS_META[r.status]?.color, borderColor: STATUS_META[r.status]?.border, fontWeight: "700" }}>
-                        ● {statusLabel(r.status)}
-                      </span>
-                      <span style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", fontFamily: "monospace" }}>🕐 {formatRelativeLocal(r.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div style={{ backgroundColor: "rgba(15,21,33,0.82)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "14px", padding: "16px" }}>
-          <h2 style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: "700", marginBottom: "14px" }}>{t("dashboard.alertsTitle")}</h2>
-          {alerts.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "32px 16px", fontSize: "11px", color: "rgba(238,240,247,0.28)" }}>
-              <p>{t("dashboard.noActiveAlerts")}</p>
-              <p style={{ fontSize: "10px", marginTop: "8px" }}>{t("dashboard.updatesAutomatically")}</p>
+            <div className="dsg-list">
+            {reports.slice(0, 6).map(r => {
+              const normType = r.type?.toLowerCase().trim() ?? "";
+              const normStatus = r.status?.toLowerCase().trim() ?? "";
+              const tm = TYPE_META[normType] ?? TYPE_META.other;
+              const sm = STATUS_META[normStatus] ?? STATUS_META.pending;
+              return (
+              <button key={r.id} type="button" className="dsg-row" onClick={() => openReportDetail(r.id)}>
+                <Tile icon={tm.icon} color={tm.color} />
+                <span className="dsg-row-body">
+                  <span className="dsg-row-title" style={{ color: tm.color }}>{typeLabel(r.type)}</span>
+                  <span className="dsg-row-sub">{r.description || t("reportDetail.noDescription", "No description")}</span>
+                  <span className="dsg-row-meta">
+                    <StatusPill color={sm.color} bg={sm.bg} border={sm.border}>
+                      {statusLabel(r.status)}
+                    </StatusPill>
+                    <span className="dsg-time">{formatRelativeLocal(r.created_at)}</span>
+                  </span>
+                </span>
+              </button>
+              );
+            })}
             </div>
+          )}
+        </Card>
+
+        <Card style={{ marginBottom: 0 }}>
+          <SectionHead title={t("dashboard.alertsTitle")} />
+          {loading ? (
+            <SkeletonRows rows={2} />
+          ) : alerts.length === 0 ? (
+            <EmptyState
+              icon={<FaBellSlash />}
+              title={t("dashboard.noActiveAlerts")}
+              sub={t("dashboard.updatesAutomatically")}
+            />
           ) : (
             <>
+              <div className="dsg-list">
               {alerts.map(a => {
                 const am = ALERT_TYPE_META[a.type] ?? ALERT_TYPE_META.info;
                 return (
-                  <div key={a.id} style={{ padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                      <div style={{ width: "34px", height: "34px", minWidth: "34px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", backgroundColor: am.bg, color: am.color, border: `1px solid ${am.border}` }}>{am.icon}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: "13px", fontWeight: "700", marginBottom: "2px", color: am.color }}>{a.title || t("alerts.alert")}</div>
-                        <div style={{ fontSize: "11px", color: "rgba(238,240,247,0.45)", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", marginBottom: "5px" }}>{a.message}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "9px", padding: "2px 7px", borderRadius: "5px", border: `1px solid ${am.border}`, backgroundColor: am.bg, color: am.color, fontWeight: "700" }}>● {levelLabel(a.type)}</span>
-                          <span style={{ fontSize: "10px", color: "rgba(238,240,247,0.28)", fontFamily: "monospace", marginLeft: "auto" }}>🕐 {formatRelativeLocal(a.created_at)}</span>
-                        </div>
-                      </div>
-                    </div>
+                  <div key={a.id} className="dsg-row" style={{ cursor: "default" }}>
+                    <span className="dsg-tile" style={{ backgroundColor: am.bg, color: am.color, border: `1px solid ${am.border}` }}>{am.icon}</span>
+                    <span className="dsg-row-body">
+                      <span className="dsg-row-title" style={{ color: am.color }}>{a.title || t("alerts.alert")}</span>
+                      <span className="dsg-row-sub" style={{ fontSize: 11 }}>{a.message}</span>
+                      <span className="dsg-row-meta">
+                        <StatusPill color={am.color} bg={am.bg} border={am.border}>
+                          {levelLabel(a.type)}
+                        </StatusPill>
+                        <span className="dsg-time" style={{ marginLeft: "auto" }}>{formatRelativeLocal(a.created_at)}</span>
+                      </span>
+                    </span>
                   </div>
                 );
               })}
-              <button onClick={handleViewAllAlerts} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginTop: "12px", fontSize: "11px", fontWeight: "700", color: "#F5C842", border: "1px solid rgba(245,200,66,0.25)", borderRadius: "8px", padding: "8px 16px", backgroundColor: "rgba(245,200,66,0.04)", width: "100%", cursor: "pointer" }}>
+              </div>
+              <button type="button" onClick={handleViewAllAlerts} className="dsg-btn-outline" style={{ width: "100%", marginTop: 12 }}>
                 {t("dashboard.viewAllAlerts")}
               </button>
             </>
           )}
-        </div>
+        </Card>
       </div>
 
       {isMobile && (
-        <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: "64px", backgroundColor: "rgba(8,12,20,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "space-around", zIndex: 100, paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <button onClick={openFileReport} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: "none", border: "none", flex: 1, fontFamily: "inherit" }}>
-            <span style={{ fontSize: "20px", lineHeight: 1 }}>📝</span>
-            <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.4)", fontWeight: "600", letterSpacing: "0.04em" }}>{t("dashboard.bottomNavReport")}</span>
+        <nav className="dsg-bottomnav" aria-label={t("nav.myDashboard")}>
+          <button type="button" onClick={openFileReport} className="dsg-bnav-btn">
+            <FaPen /><span className="dsg-bnav-label">{t("dashboard.bottomNavReport")}</span>
           </button>
-          <Link to="/citizen/history" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", textDecoration: "none", flex: 1 }}>
-            <span style={{ fontSize: "20px", lineHeight: 1 }}>📂</span>
-            <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.4)", fontWeight: "600", letterSpacing: "0.04em" }}>{t("dashboard.bottomNavHistory")}</span>
+          <Link to="/citizen/history" className="dsg-bnav-btn">
+            <FaFolderOpen /><span className="dsg-bnav-label">{t("dashboard.bottomNavHistory")}</span>
           </Link>
-          <button onClick={openAlerts} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: "none", border: "none", position: "relative", flex: 1, fontFamily: "inherit" }}>
-            <span style={{ fontSize: "20px", lineHeight: 1 }}>🔔</span>
-            <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.4)", fontWeight: "600", letterSpacing: "0.04em" }}>{t("nav.alerts")}</span>
+          <button type="button" onClick={openAlerts} className="dsg-bnav-btn">
+            <FaBell /><span className="dsg-bnav-label">{t("nav.alerts")}</span>
             {unreadCount > 0 && (
-              <span style={{ position: "absolute", top: "-2px", right: "calc(50% - 18px)", width: "15px", height: "15px", backgroundColor: "#EF5B5B", borderRadius: "50%", fontSize: "8px", fontWeight: "700", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</span>
+              <span className="dsg-bnav-badge">{unreadCount}</span>
             )}
           </button>
-          <button onClick={openMap} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: "none", border: "none", flex: 1, fontFamily: "inherit" }}>
-            <span style={{ fontSize: "20px", lineHeight: 1 }}>🗺️</span>
-            <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.4)", fontWeight: "600", letterSpacing: "0.04em" }}>{t("nav.map")}</span>
+          <button type="button" onClick={openMap} className="dsg-bnav-btn">
+            <FaMapMarkedAlt /><span className="dsg-bnav-label">{t("nav.map")}</span>
           </button>
-          <button onClick={openSafetyTips} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "3px", background: "none", border: "none", flex: 1, fontFamily: "inherit" }}>
-            <span style={{ fontSize: "20px", lineHeight: 1 }}>💡</span>
-            <span style={{ fontSize: "9px", color: "rgba(238,240,247,0.4)", fontWeight: "600", letterSpacing: "0.04em" }}>{t("dashboard.bottomNavTips")}</span>
+          <button type="button" onClick={openSafetyTips} className="dsg-bnav-btn">
+            <FaLightbulb /><span className="dsg-bnav-label">{t("dashboard.bottomNavTips")}</span>
           </button>
         </nav>
       )}
@@ -466,7 +454,7 @@ export default function CitizenDashboard() {
             bottom: isMobile ? "64px" : 0,
             zIndex: 150,
             overflowY: "auto",
-            background: "#080c14",
+            background: "var(--clr-bg)",
             transform: "translateZ(0)",
             WebkitTransform: "translateZ(0)",
           }}
@@ -485,9 +473,9 @@ export default function CitizenDashboard() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "rgba(15,21,33,0.92)",
-              border: "1px solid rgba(255,255,255,0.14)",
-              color: "#eef0f7",
+              background: "var(--citizen-card)",
+              border: "1px solid var(--clr-border-2)",
+              color: "var(--clr-text)",
               fontSize: "16px",
               cursor: "pointer",
               backdropFilter: "blur(12px)",
@@ -496,30 +484,28 @@ export default function CitizenDashboard() {
             <FaTimes />
           </button>
 
-          <Suspense fallback={<LazyFallback />}>
-            {modalView === "safetytips" && <CitizenSafetyTips />}
-            {modalView === "alerts" && <CitizenAlertsPage />}
+          {modalView === "safetytips" && <CitizenSafetyTips />}
+          {modalView === "alerts" && <CitizenAlertsPage />}
 
-            {modalView === "report" && (
-              <CitizenReport
-                onBack={() => setModalView(null)}
-                onViewHistory={() => navigate("/citizen/history")}
-                onViewReport={(id) => openReportDetail(id)}
-              />
-            )}
+          {modalView === "report" && (
+            <CitizenReport
+              onBack={() => setModalView(null)}
+              onViewHistory={() => navigate("/citizen/history")}
+              onViewReport={(id) => openReportDetail(id)}
+            />
+          )}
 
-            {modalView === "reportdetail" && selectedReportId && (
-              <CitizenReportDetail
-                reportId={selectedReportId}
-                onBack={() => setModalView(null)}
-                onViewHistory={() => navigate("/citizen/history")}
-              />
-            )}
+          {modalView === "reportdetail" && selectedReportId && (
+            <CitizenReportDetail
+              reportId={selectedReportId}
+              onBack={() => setModalView(null)}
+              onViewHistory={() => navigate("/citizen/history")}
+            />
+          )}
 
-            {modalView === "map" && (
-              <CitizenMap onBack={() => setModalView(null)} />
-            )}
-          </Suspense>
+          {modalView === "map" && (
+            <CitizenMap onBack={() => setModalView(null)} />
+          )}
         </div>
       )}
 

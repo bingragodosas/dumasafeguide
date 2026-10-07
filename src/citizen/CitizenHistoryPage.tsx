@@ -9,6 +9,7 @@ import {
   FaBell, FaArrowLeft,
   FaClipboardCheck, FaUserShield,
 } from "react-icons/fa";
+import { Card, SectionHead, Stat, StatusPill, Tag, Tile, EmptyState, SkeletonRows } from "./components/ui";
 
 import pagesBackground from '../assets/pagesbackground.png';
 
@@ -50,24 +51,24 @@ function markAsRead(userId: string, reportId: string) {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<string, { icon: string; color: string }> = {
-  fire:     { icon: "🔥", color: "#FF6B6B" },
-  accident: { icon: "🚗", color: "#FFD166" },
-  flood:    { icon: "🌊", color: "#7B9EFF" },
-  crime:    { icon: "🚨", color: "#FF9F43" },
-  medical:  { icon: "🏥", color: "#2ECC8F" },
-  other:    { icon: "⚠️", color: "#8fa3be" },
+  fire:     { icon: "🔥", color: "var(--c-fire)" },
+  accident: { icon: "🚗", color: "var(--c-accident)" },
+  flood:    { icon: "🌊", color: "var(--c-flood)" },
+  crime:    { icon: "🚨", color: "var(--c-crime)" },
+  medical:  { icon: "🏥", color: "var(--c-medical)" },
+  other:    { icon: "⚠️", color: "var(--c-other)" },
 };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:       { label: "PENDING",     color: "#FFD166", bg: "rgba(255,209,102,.12)", border: "rgba(255,209,102,.3)"  },
-  "in-progress": { label: "IN PROGRESS", color: "#7B9EFF", bg: "rgba(123,158,255,.12)", border: "rgba(123,158,255,.3)"  },
-  resolved:      { label: "RESOLVED",    color: "#2ECC8F", bg: "rgba(46,204,143,.12)",  border: "rgba(46,204,143,.3)"  },
+  pending:       { label: "PENDING",     color: "var(--c-pending)",  bg: "var(--clr-yellow-bg)", border: "var(--clr-yellow-border)" },
+  "in-progress": { label: "IN PROGRESS", color: "var(--c-progress)", bg: "var(--clr-blue-bg)",   border: "var(--clr-blue-border)"  },
+  resolved:      { label: "RESOLVED",    color: "var(--c-resolved)", bg: "var(--clr-green-bg)",  border: "var(--clr-green-border)"  },
 };
 
 const RESOLUTION_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {
-  "forwarded":      { label: "Forwarded to Department",    icon: "↗", color: "#7B9EFF", bg: "rgba(123,158,255,.12)" },
-  "follow-up":      { label: "Resolved — Needs Follow-Up", icon: "⟳", color: "#FFD166", bg: "rgba(255,209,102,.12)" },
-  "fully-resolved": { label: "Fully Resolved",             icon: "✓", color: "#2ECC8F", bg: "rgba(46,204,143,.12)"  },
+  "forwarded":      { label: "Forwarded to Department",    icon: "↗", color: "var(--c-progress)", bg: "var(--clr-blue-bg)" },
+  "follow-up":      { label: "Resolved — Needs Follow-Up", icon: "⟳", color: "var(--c-pending)",  bg: "var(--clr-yellow-bg)" },
+  "fully-resolved": { label: "Fully Resolved",             icon: "✓", color: "var(--c-resolved)", bg: "var(--clr-green-bg)"  },
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -76,10 +77,10 @@ const STYLES = `
 @import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Instrument+Sans:wght@400;500;600&display=swap');
 
 :root {
-  --bg: #080c14; --surface: #0f1521; --surface-2: #161d2e;
-  --border: rgba(255,255,255,0.06); --border-2: rgba(255,255,255,0.10);
-  --text: #eef0f7; --text-2: rgba(238,240,247,0.55); --text-3: rgba(238,240,247,0.25);
-  --green: #2ECC8F; --red: #FF6B6B; --blue: #7B9EFF; --yellow: #FFD166;
+  --bg: var(--clr-bg); --surface: var(--citizen-card); --surface-2: var(--clr-surface-2);
+  --border: var(--clr-border); --border-2: var(--clr-border-2);
+  --text: var(--clr-text); --text-2: var(--clr-text-muted); --text-3: var(--clr-text-faint);
+  --green: var(--clr-green); --red: var(--clr-red); --blue: var(--clr-blue); --yellow: var(--c-pending);
   --font-display: 'Cabinet Grotesk', sans-serif;
   --font-body: 'Instrument Sans', sans-serif;
 }
@@ -98,7 +99,7 @@ const STYLES = `
 }
 .ch-portal::before {
   content: ''; position: fixed; inset: 0;
-  background: linear-gradient(160deg, rgba(8,12,20,.92) 0%, rgba(8,12,20,.80) 50%, rgba(8,12,20,.94) 100%);
+  background: linear-gradient(160deg, var(--citizen-scrim) 0%, color-mix(in srgb, var(--citizen-scrim) 82%, transparent) 50%, var(--citizen-scrim) 100%);
   pointer-events: none; z-index: 1;
 }
 .ch-overlay { display: none; position: fixed; inset: 0; z-index: 190; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
@@ -133,7 +134,7 @@ const STYLES = `
 .ch-logout-btn  { display: flex; align-items: center; gap: 8px; width: 100%; padding: 9px 12px; background: rgba(8,12,20,.6); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-2); cursor: pointer; transition: all 0.2s; }
 .ch-logout-btn:hover { background: rgba(255,107,107,.12); color: var(--red); border-color: var(--red); }
 
-.ch-page { flex: 1; padding: 24px; overflow-x: hidden; min-width: 0; min-height: calc(100vh - 56px); }
+.ch-page { flex: 1; padding: 24px; overflow-x: hidden; min-width: 0; min-height: calc(100vh - 56px); position: relative; z-index: 2; }
 .ch-page > div { animation: fadeIn 0.4s ease-out both; }
 .ch-page-hd { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 .ch-eyebrow { font-size: 11px; color: var(--green); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
@@ -164,9 +165,9 @@ const STYLES = `
 .ch-row-icon { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; background: rgba(8,12,20,.4); }
 .ch-row-body { flex: 1; min-width: 0; }
 .ch-row-desc { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
-.ch-row.unread .ch-row-desc { color: #fff; }
+.ch-row.unread .ch-row-desc { color: var(--clr-text); }
 .ch-row-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.ch-row-date { font-size: 11px; color: var(--text-3); }
+.ch-row-date { font-size: 11px; color: var(--text-2); }
 .ch-row-type { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: capitalize; border-radius: 4px; padding: 2px 8px; }
 .ch-row-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .ch-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0; }
@@ -199,10 +200,10 @@ const STYLES = `
 .ch-tl-item { display: flex; gap: 14px; position: relative; }
 .ch-tl-item:not(:last-child)::before { content: ''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 1px; background: var(--border); }
 .ch-tl-dot { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid; z-index: 1; }
-.ch-tl-dot.pending  { background: rgba(255,209,102,.1);  border-color: #FFD166; color: #FFD166; }
-.ch-tl-dot.progress { background: rgba(123,158,255,.1);  border-color: #7B9EFF; color: #7B9EFF; }
-.ch-tl-dot.resolved { background: rgba(46,204,143,.1);   border-color: #2ECC8F; color: #2ECC8F; }
-.ch-tl-dot.inactive { background: rgba(255,255,255,.03); border-color: var(--border); color: var(--text-3); }
+.ch-tl-dot.pending  { background: var(--clr-yellow-bg); border-color: var(--c-pending);  color: var(--c-pending); }
+.ch-tl-dot.progress { background: var(--clr-blue-bg);   border-color: var(--c-progress); color: var(--c-progress); }
+.ch-tl-dot.resolved { background: var(--clr-green-bg);  border-color: var(--c-resolved); color: var(--c-resolved); }
+.ch-tl-dot.inactive { background: var(--clr-surface-2); border-color: var(--clr-border); color: var(--text-3); }
 .ch-tl-content { flex: 1; padding-bottom: 20px; }
 .ch-tl-label { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .ch-tl-label.inactive { color: var(--text-3); }
@@ -210,18 +211,18 @@ const STYLES = `
 .ch-tl-note  { font-size: 12px; color: var(--text-2); line-height: 1.55; background: rgba(8,12,20,.4); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
 
 /* ── Resolution Box ── */
-.ch-resolution { border-radius: 12px; overflow: hidden; border: 1px solid rgba(46,204,143,.3); background: rgba(46,204,143,.05); }
-.ch-resolution-hd { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: rgba(46,204,143,.08); border-bottom: 1px solid rgba(46,204,143,.2); }
+.ch-resolution { border-radius: 12px; overflow: hidden; border: 1px solid var(--clr-green-border); background: var(--clr-green-bg); }
+.ch-resolution-hd { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--clr-green-bg); border-bottom: 1px solid var(--clr-green-border); }
 .ch-resolution-hd-icon { font-size: 16px; }
-.ch-resolution-hd-title { font-size: 12px; font-weight: 700; color: #2ECC8F; flex: 1; text-transform: uppercase; letter-spacing: 0.4px; }
+.ch-resolution-hd-title { font-size: 12px; font-weight: 700; color: var(--clr-green); flex: 1; text-transform: uppercase; letter-spacing: 0.4px; }
 .ch-resolution-type-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; border: 1px solid; }
 .ch-resolution-body { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
 .ch-resolution-field { display: flex; flex-direction: column; gap: 8px; }
-.ch-resolution-field-label { font-size: 10px; font-weight: 700; color: rgba(46,204,143,.7); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 6px; }
-.ch-resolution-field-value { font-size: 13px; color: var(--text); line-height: 1.7; background: rgba(8,12,20,.5); border: 1px solid rgba(46,204,143,.15); border-radius: 10px; padding: 14px 16px; }
+.ch-resolution-field-label { font-size: 10px; font-weight: 700; color: var(--clr-green); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 6px; }
+.ch-resolution-field-value { font-size: 13px; color: var(--text); line-height: 1.7; background: var(--clr-surface-2); border: 1px solid var(--clr-green-border); border-radius: 10px; padding: 14px 16px; }
 .ch-resolution-field-value.empty { color: var(--text-3); font-style: italic; }
-.ch-resolution-divider { height: 1px; background: rgba(46,204,143,.12); }
-.ch-resolution-footer { padding: 10px 18px 14px; font-size: 11px; color: rgba(46,204,143,.6); display: flex; align-items: center; gap: 6px; }
+.ch-resolution-divider { height: 1px; background: var(--clr-green-border); }
+.ch-resolution-footer { padding: 10px 18px 14px; font-size: 11px; color: var(--clr-green); display: flex; align-items: center; gap: 6px; }
 
 /* ── Evidence ── */
 .ch-evidence { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
@@ -230,12 +231,12 @@ const STYLES = `
 
 /* ── Notices ── */
 .ch-status-notice { display: flex; align-items: flex-start; gap: 14px; border-radius: 10px; padding: 16px 18px; border: 1px solid; }
-.ch-status-notice.pending     { background: rgba(255,209,102,.06); border-color: rgba(255,209,102,.25); }
-.ch-status-notice.in-progress { background: rgba(123,158,255,.06); border-color: rgba(123,158,255,.25); }
+.ch-status-notice.pending     { background: var(--clr-yellow-bg); border-color: var(--clr-yellow-border); }
+.ch-status-notice.in-progress { background: var(--clr-blue-bg);   border-color: var(--clr-blue-border); }
 .ch-status-notice-icon  { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 .ch-status-notice-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.ch-status-notice.pending     .ch-status-notice-title { color: #FFD166; }
-.ch-status-notice.in-progress .ch-status-notice-title { color: #7B9EFF; }
+.ch-status-notice.pending     .ch-status-notice-title { color: var(--c-pending); }
+.ch-status-notice.in-progress .ch-status-notice-title { color: var(--c-progress); }
 .ch-status-notice-text { font-size: 12px; color: var(--text-2); line-height: 1.55; }
 
 /* ── Empty / Loading ── */
@@ -564,10 +565,10 @@ export default function CitizenHistoryPage() {
     rt ? t(`reportDetail.resolutionLabels.${resolutionKey(rt)}`, RESOLUTION_META[rt]?.label ?? rt) : "";
 
   const statCards = [
-    { label: t("dashboard.statTotalFiled"),  value: stats.total,      accent: "#7B9EFF", icon: <FaFileAlt />     },
-    { label: t("dashboard.statPending"),      value: stats.pending,    accent: "#FFD166", icon: <FaClock />       },
-    { label: t("dashboard.statInProgress"),  value: stats.inProgress, accent: "#FF9F43", icon: <FaSpinner />     },
-    { label: t("dashboard.statResolved"),     value: stats.resolved,   accent: "#2ECC8F", icon: <FaCheckCircle /> },
+    { label: t("dashboard.statTotalFiled"),  value: stats.total,      accent: "var(--clr-blue)", icon: <FaFileAlt size={15} />     },
+    { label: t("dashboard.statPending"),      value: stats.pending,    accent: "var(--c-pending)",  icon: <FaClock size={15} />       },
+    { label: t("dashboard.statInProgress"),  value: stats.inProgress, accent: "var(--c-progress)", icon: <FaSpinner size={15} />     },
+    { label: t("dashboard.statResolved"),     value: stats.resolved,   accent: "var(--c-resolved)", icon: <FaCheckCircle size={15} /> },
   ];
 
   return (
@@ -589,75 +590,75 @@ export default function CitizenHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="ch-stat-grid">
+                    <div className="dsg-stat-grid">
                       {statCards.map(c => (
-                        <div key={c.label} className="ch-stat" style={{ "--card-accent": c.accent } as React.CSSProperties}>
-                          <div className="ch-stat-icon">{c.icon}</div>
-                          <div className="ch-stat-num">{loading ? "—" : c.value}</div>
-                          <div className="ch-stat-label">{c.label}</div>
-                        </div>
+                        <Stat key={c.label} icon={c.icon} value={c.value} label={c.label} accent={c.accent} loading={loading} />
                       ))}
                     </div>
 
-                    <div className="ch-panel">
-                      <div className="ch-panel-hd">
-                        <span className="ch-panel-title">{t("history.allReports")}</span>
-                        <span className="ch-panel-tag">
-                          {loading ? "…" : unreadCount > 0 ? `${unreadCount} ${t("history.totalLabel")}` : `${stats.total} ${t("history.totalLabel")}`}
-                        </span>
-                      </div>
+                    <Card>
+                      <SectionHead
+                        title={t("history.allReports")}
+                        action={
+                          <span className="ch-panel-tag">
+                            {loading ? "…" : unreadCount > 0 ? `${unreadCount} ${t("history.totalLabel")}` : `${stats.total} ${t("history.totalLabel")}`}
+                          </span>
+                        }
+                      />
 
                       {loading ? (
-                        <div className="ch-loading"><div className="ch-spinner" /> {t("history.loadingReports")}</div>
+                        <SkeletonRows rows={4} />
                       ) : reports.length === 0 ? (
-                        <div className="ch-empty">
-                          <div className="ch-empty-icon"><FaInbox /></div>
-                          <div className="ch-empty-title">{t("history.noReportsYet")}</div>
-                          <p className="ch-empty-sub">{t("history.noReportsSub")}</p>
-                          <Link to="/citizen/report" className="ch-empty-link"><FaFileAlt size={11} /> {t("history.fileAReport")}</Link>
-                        </div>
+                        <EmptyState
+                          icon={<FaInbox />}
+                          title={t("history.noReportsYet")}
+                          sub={t("history.noReportsSub")}
+                          actionLabel={t("history.fileAReport")}
+                          onAction={() => navigate("/citizen/report")}
+                        />
                       ) : (
-                        <div className="ch-list">
+                        <div className="dsg-list">
                           {reports.map(r => {
                             const tm       = TYPE_META[r.type?.toLowerCase()] ?? TYPE_META.other;
                             const sm       = STATUS_META[r.status]            ?? STATUS_META.pending;
                             const isUnread = !readIds.has(String(r.id));
                             return (
-                              <div
+                              <button
                                 key={r.id}
-                                className={`ch-row${isUnread ? " unread" : ""}`}
+                                type="button"
+                                className={`dsg-row${isUnread ? " is-unread" : ""}`}
                                 onClick={() => navigate(`/citizen/history/${r.id}`)}
                               >
-                                <div className="ch-row-icon">{tm.icon}</div>
-                                <div className="ch-row-body">
-                                   <div className="ch-row-desc" title={r.description}>{r.description || t("reportDetail.noDescription")}</div>
-                                  <div className="ch-row-meta">
-                                    <span className="ch-row-date">{fmtDate(r.created_at, locale)}</span>
+                                <Tile icon={tm.icon} color={tm.color} />
+                                <span className="dsg-row-body">
+                                  <span className="dsg-row-desc" title={r.description}>{r.description || t("reportDetail.noDescription")}</span>
+                                  <span className="dsg-row-meta">
+                                    <span className="dsg-time">{fmtDate(r.created_at, locale)}</span>
                                     {r.type && (
-                                      <span className="ch-row-type" style={{ color: tm.color, background: `${tm.color}12`, border: `1px solid ${tm.color}25` }}>
+                                      <Tag color={tm.color} bg={`color-mix(in srgb, ${tm.color} 14%, transparent)`} border={`color-mix(in srgb, ${tm.color} 32%, transparent)`}>
                                         {typeName(r.type)}
-                                      </span>
+                                      </Tag>
                                     )}
                                     {r.status === "resolved" && r.resolution_type && RESOLUTION_META[r.resolution_type] && (
-                                      <span style={{ fontSize: "9px", fontWeight: "700", color: "#2ECC8F", background: "rgba(46,204,143,.1)", border: "1px solid rgba(46,204,143,.2)", borderRadius: "4px", padding: "2px 6px" }}>
+                                      <Tag color="var(--c-resolved)" bg="var(--clr-green-bg)" border="var(--clr-green-border)">
                                         {RESOLUTION_META[r.resolution_type].icon} {resolutionName(r.resolution_type)}
-                                      </span>
+                                      </Tag>
                                     )}
-                                  </div>
-                                </div>
-                                <div className="ch-row-right">
-                                  {isUnread && <span className="ch-unread-dot" />}
-                                  <span className="ch-pill" style={{ color: sm.color, background: sm.bg, borderColor: sm.border }}>
-                                    <span className="ch-pill-dot" />{statusLabel(r.status)}
                                   </span>
-                                  <FaChevronRight className="ch-chevron" />
-                                </div>
-                              </div>
+                                </span>
+                                <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                                  {isUnread && <span className="ch-unread-dot" />}
+                                  <StatusPill color={sm.color} bg={sm.bg} border={sm.border}>
+                                    {statusLabel(r.status)}
+                                  </StatusPill>
+                                  <FaChevronRight style={{ color: "var(--clr-text-faint)", fontSize: 10 }} />
+                                </span>
+                              </button>
                             );
                           })}
                         </div>
                       )}
-                    </div>
+                    </Card>
                   </>
                 )}
 

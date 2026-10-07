@@ -60,18 +60,18 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
   }, [id]);
 
   const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-    "pending":     { label: "Pending",     color: "#FFD166", bg: "rgba(255,209,102,0.1)",  icon: <FaClock size={11} />       },
-    "in-progress": { label: "In Progress", color: "#7B9EFF", bg: "rgba(123,158,255,0.1)",  icon: <FaSpinner size={11} />     },
-    "resolved":    { label: "Resolved",    color: "#2ECC8F", bg: "rgba(46,204,143,0.1)",   icon: <FaCheckCircle size={11} /> },
+    "pending":     { label: "Pending",     color: "var(--c-pending)",  bg: "var(--clr-yellow-bg)", icon: <FaClock size={11} />       },
+    "in-progress": { label: "In Progress", color: "var(--c-progress)", bg: "var(--clr-blue-bg)",   icon: <FaSpinner size={11} />     },
+    "resolved":    { label: "Resolved",    color: "var(--c-resolved)", bg: "var(--clr-green-bg)",  icon: <FaCheckCircle size={11} /> },
   };
 
   const typeColors: Record<string, string> = {
-    fire: "#FF6B6B", flood: "#7B9EFF", crime: "#FF9F43",
-    medical: "#2ECC8F", accident: "#FFD166",
+    fire: "var(--c-fire)", flood: "var(--c-flood)", crime: "var(--c-crime)",
+    medical: "var(--c-medical)", accident: "var(--c-accident)",
   };
 
-  const s         = report ? (statusConfig[report.status] ?? { label: report.status, color: "#eef0f7", bg: "rgba(255,255,255,.06)", icon: <FaExclamationCircle size={11} /> }) : null;
-  const typeColor = report ? (typeColors[report.type?.toLowerCase()] || "#7B9EFF") : "#7B9EFF";
+  const s         = report ? (statusConfig[report.status] ?? { label: report.status, color: "var(--clr-text)", bg: "var(--clr-surface-2)", icon: <FaExclamationCircle size={11} /> }) : null;
+  const typeColor = report ? (typeColors[report.type?.toLowerCase()] || "var(--c-flood)") : "var(--c-flood)";
 
   // Language-aware status-pill text (reportDetail.statusLabels in the dictionary).
   const statusKey = report?.status === "in-progress" ? "inProgress" : report?.status;
@@ -91,7 +91,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         :root {
           --bg: #080c14; --surface: #0f1521; --surface-2: #161d2e;
           --border: rgba(255,255,255,0.06); --border-2: rgba(255,255,255,0.10);
-          --text: #eef0f7; --text-2: rgba(238,240,247,0.55); --text-3: rgba(238,240,247,0.25);
+          --text: var(--clr-text); --text-2: var(--clr-text-muted); --text-3: var(--clr-text-faint);
           --green: #2ECC8F; --red: #FF6B6B; --blue: #7B9EFF; --yellow: #FFD166;
           --font-display: 'Cabinet Grotesk', sans-serif;
           --font-body: 'Instrument Sans', sans-serif;
@@ -112,7 +112,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         .rd-logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
         .rd-logo-text { font-family: var(--font-display); font-size: 16px; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
         .rd-logo-text span { color: var(--green); }
-        .rd-back { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--text-3); text-decoration: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 14px; background: rgba(15,21,33,.82); transition: all .2s; backdrop-filter: blur(16px); }
+        .rd-back { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--text-3); text-decoration: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 14px; background: var(--citizen-card); transition: all .2s; backdrop-filter: blur(16px); }
         .rd-back:hover { color: var(--text); border-color: var(--border-2); background: rgba(15,21,33,.95); }
 
         .rd-hero { margin-top: 40px; margin-bottom: 28px; animation: fadeUp .6s .05s ease both; }
@@ -126,7 +126,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         .rd-section-label { font-size: 10.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
         .rd-section-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-2), transparent); }
 
-        .rd-card { background: rgba(15,21,33,.82); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; animation: fadeUp .6s .1s ease both; backdrop-filter: blur(16px); }
+        .rd-card { background: var(--citizen-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; animation: fadeUp .6s .1s ease both; backdrop-filter: blur(16px); }
         .rd-card-top { padding: 22px 24px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
         .rd-card-top-left { display: flex; align-items: flex-start; gap: 14px; }
         .rd-card-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
@@ -152,7 +152,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         .rd-meta-value { font-size: 13px; font-weight: 500; color: var(--text-2); line-height: 1.4; }
         .rd-type-tag { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: capitalize; border-radius: 6px; padding: 3px 9px; display: inline-block; }
 
-        .rd-evidence-card { background: rgba(15,21,33,.82); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; animation: fadeUp .6s .15s ease both; backdrop-filter: blur(16px); }
+        .rd-evidence-card { background: var(--citizen-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; animation: fadeUp .6s .15s ease both; backdrop-filter: blur(16px); }
         .rd-evidence-head { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .rd-evidence-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
         .rd-evidence-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; }
@@ -163,7 +163,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         .rd-evidence-empty-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text-3); margin: 0 auto 10px; }
         .rd-evidence-empty-text { font-size: 13px; color: var(--text-3); }
 
-        .rd-note-card { background: rgba(15,21,33,.82); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp .6s .2s ease both; backdrop-filter: blur(16px); margin-bottom: 20px; }
+        .rd-note-card { background: var(--citizen-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp .6s .2s ease both; backdrop-filter: blur(16px); margin-bottom: 20px; }
         .rd-note-head { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
         .rd-note-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
         .rd-note-badge { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #2ECC8F; background: rgba(46,204,143,.1); border: 1px solid rgba(46,204,143,.22); border-radius: 20px; padding: 3px 9px; }
@@ -178,7 +178,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
         .rd-note-empty-title { font-size: 13px; font-weight: 600; color: var(--text-3); margin-bottom: 4px; }
         .rd-note-empty-sub { font-size: 12px; color: var(--text-3); opacity: .7; }
 
-        .rd-timeline-card { background: rgba(15,21,33,.82); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp .6s .25s ease both; backdrop-filter: blur(16px); }
+        .rd-timeline-card { background: var(--citizen-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; animation: fadeUp .6s .25s ease both; backdrop-filter: blur(16px); }
         .rd-timeline-head { padding: 16px 22px; border-bottom: 1px solid var(--border); }
         .rd-timeline-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); }
         .rd-timeline-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 0; }
@@ -221,7 +221,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
               <button
                 onClick={goHistory}
                 className="rd-back"
-                style={{ background: "rgba(15,21,33,.82)", cursor: "pointer" }}
+                style={{ background: "var(--citizen-card)", cursor: "pointer" }}
               >
                 <FaArrowLeft size={10} /> {t("reportDetail.backToHistory")}
               </button>
@@ -243,7 +243,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
             <div className="rd-card">
               <div className="rd-card-top">
                 <div className="rd-card-top-left">
-                  <div className="rd-card-icon" style={{ background: `${typeColor}12`, border: `1px solid ${typeColor}30`, color: typeColor }}>
+                  <div className="rd-card-icon" style={{ background: `color-mix(in srgb, ${typeColor} 12%, transparent)`, border: `1px solid color-mix(in srgb, ${typeColor} 30%, transparent)`, color: typeColor }}>
                     <FaExclamationCircle />
                   </div>
                   <div>
@@ -265,7 +265,7 @@ export default function CitizenReportDetail({ reportId, onBack, onViewHistory }:
                     <div className="rd-meta-label">{t("reportDetail.type")}</div>
                     <div className="rd-meta-value">
                       {report.type ? (
-                        <span className="rd-type-tag" style={{ color: typeColor, background: `${typeColor}10`, border: `1px solid ${typeColor}25` }}>
+                        <span className="rd-type-tag" style={{ color: typeColor, background: `color-mix(in srgb, ${typeColor} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${typeColor} 28%, transparent)` }}>
                           {typeName}
                         </span>
                       ) : "—"}

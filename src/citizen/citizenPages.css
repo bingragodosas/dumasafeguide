@@ -1,24 +1,24 @@
 .citizen-page {
   min-height: 100vh;
-  background-image: linear-gradient(rgba(8,12,20,0.93), rgba(8,12,20,0.93)), url('/src/assets/pagesbackground.jpg');
+  background-image: linear-gradient(var(--citizen-scrim), var(--citizen-scrim)), url('/src/assets/pagesbackground.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  background-color: #080c14;
-  color: #eef0f7;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
   font-family: 'Instrument Sans', sans-serif;
 }
 
 .citizen-page {
   min-height: 100vh;
-  background-image: linear-gradient(rgba(8,12,20,0.93), rgba(8,12,20,0.93)), url('../assets/pagesbackground.jpg');
+  background-image: linear-gradient(var(--citizen-scrim), var(--citizen-scrim)), url('../assets/pagesbackground.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
-  background-color: #080c14;
-  color: #eef0f7;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
   font-family: 'Instrument Sans', sans-serif;
 }
 

@@ -6,6 +6,7 @@ import directorybg from "../assets/directorybg.png";
 import dsgLogo from "../assets/dsg_logo.png";
 import { useLanguage } from "../context/LanguageContext";
 import TurnstileWidget from "../components/TurnstileWidget";
+import { useTheme } from "../context/ThemeContext";
 
 declare global {
   interface Window {
@@ -803,21 +804,11 @@ function MobileHeader({ t }: { t: (key: string) => string }) {
     <div className="su-mobile-header" style={{ display: "none" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <img src={dsgLogo} alt="DSG Logo" style={{ width: 36, height: 36, objectFit: "contain" }} />
-        <div style={{
-          fontFamily: "'Poppins', sans-serif", fontSize: 16, fontWeight: 700,
-          color: "#F8FAFC", letterSpacing: "-0.02em",
-        }}>
-          Duma<span style={{ color: "#00c8e0" }}>SafeGuide</span>
+        <div className="su-brand-inline">
+          Duma<span>SafeGuide</span>
         </div>
       </div>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 6,
-        padding: "5px 10px", borderRadius: 99,
-        background: "rgba(0,200,224,0.10)", border: "1px solid rgba(0,200,224,0.22)",
-        fontFamily: "'Inter', sans-serif",
-        fontSize: 9, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase",
-        color: "rgba(0,200,224,0.85)",
-      }}>
+      <div className="su-badge-inline">
         <span style={{
           width: 5, height: 5, borderRadius: "50%", background: "#00c8e0",
           display: "inline-block",
@@ -898,6 +889,7 @@ function LeftPanel({ t }: { t: (key: string) => string }) {
 
 export default function Signup() {
   const { t } = useLanguage();
+  const { isLight } = useTheme();
 
   const [formData, setFormData] = useState({
     firstName: "", lastName: "", email: "", phone: "", barangay: "", password: "", confirmPassword: ""
@@ -959,7 +951,9 @@ export default function Signup() {
       setError(t("signup.errors.captchaLoading", "Security check is still loading. Please wait a moment and try again."));
       return;
     }
-    if (!captchaToken) {
+    // If the widget itself failed to load (status "error"), don't brick the
+    // signup: attempt auth without a token and let Supabase decide.
+    if (!captchaToken && captchaStatus !== "error") {
       setError(
         captchaMsg ||
           t("signup.errors.needCaptcha", "Please complete the CAPTCHA to verify you're human.")
@@ -975,7 +969,7 @@ export default function Signup() {
         email,
         password,
         options: {
-          captchaToken,
+          ...(captchaToken ? { captchaToken } : {}),
           emailRedirectTo: `${window.location.origin}/dashboard/citizen`,
           data: {
             first_name:   firstName.trim(),
@@ -1123,12 +1117,12 @@ export default function Signup() {
                     onBlur={() => setEmailTouched(true)} />
                 </div>
                 {emailTouched && formData.email && !isValidEmailFormat(formData.email) && (
-                  <p style={{ fontSize: 11.5, marginTop: 6, color: "#ff8877" }}>
+                  <p className="su-err-inline">
                     {t("signup.emailInvalid")}
                   </p>
                 )}
                 {!(emailTouched && formData.email && !isValidEmailFormat(formData.email)) && (
-                  <p style={{ fontSize: 11, marginTop: 6, color: "rgba(168,216,255,0.35)" }}>
+                  <p className="su-pw-hint-inline">
                     {t("signup.emailHint")}
                   </p>
                 )}
@@ -1167,6 +1161,7 @@ export default function Signup() {
                 <TurnstileWidget
                   key={turnstileKey}
                   className="su-turnstile-box"
+                  theme={isLight ? "light" : "dark"}
                   onToken={(token) => {
                     setCaptchaToken(token);
                     setCaptchaMsg("");
@@ -1185,26 +1180,17 @@ export default function Signup() {
                   onReady={() => setCaptchaStatus("ready")}
                 />
                 {captchaStatus === "loading" && !captchaToken && (
-                  <div style={{ fontSize: 12, color: "rgba(168,216,255,0.55)", marginTop: 8 }}>
+                  <div className="su-captcha-hint">
                     {t("signup.captchaLoading", "Loading security check…")}
                   </div>
                 )}
                 {captchaMsg && (
-                  <div style={{ fontSize: 12, color: "#ffb4a6", marginTop: 8, textAlign: "center", maxWidth: 320 }}>
+                  <div className="su-captcha-err">
                     {captchaMsg}{" "}
                     <button
                       type="button"
                       onClick={retryCaptcha}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#00c8e0",
-                        cursor: "pointer",
-                        fontWeight: 700,
-                        fontSize: 12,
-                        padding: 0,
-                        marginLeft: 4,
-                      }}
+                      className="su-captcha-retry"
                     >
                       {t("signup.captchaRetry", "Retry")}
                     </button>

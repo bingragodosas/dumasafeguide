@@ -6,6 +6,7 @@ import { supabase } from "../js/supabase";
 import logoImage from "../assets/dsg.logo.png";
 import { useLanguage } from "../context/LanguageContext.tsx";
 import { LanguageSwitcherBadge } from "./LanguageSelectModal.tsx";
+import ThemeToggle from "./ThemeToggle";
 import "./Navbar.css";
 
 export default function Navbar() {
@@ -230,8 +231,9 @@ export default function Navbar() {
           </div>
         )}
         <div className="nav-drawer-divider" />
-        {/* ── Language switcher — available in the mobile drawer too ── */}
-        <div style={{ padding: "0 16px 14px" }}>
+        {/* ── Theme + language — available in the mobile drawer too ── */}
+        <div style={{ padding: "0 16px 14px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <ThemeToggle compact />
           <LanguageSwitcherBadge />
         </div>
         <div className="nav-drawer-divider" />
@@ -281,7 +283,8 @@ export default function Navbar() {
         </div>
         <div className="nav-links nav-links-desktop">
           {navLinks}
-          {/* ── Language switcher — sits next to Login/Logout on desktop ── */}
+          {/* ── Theme toggle + language switcher — desktop ── */}
+          <ThemeToggle compact />
           <LanguageSwitcherBadge />
           {isLoggedIn && (
             <button
@@ -518,6 +521,71 @@ const CITIZEN_NAV_CSS = `
     .cn-lang-desktop { display: none; }
     .cn-ham    { display: flex; }
   }
+
+  /* ── PRO LIGHT MODE — citizen navbar (font-visibility first) ── */
+  html[data-theme="light"] .cn-bar {
+    background: rgba(255,255,255,0.94);
+    border-bottom: 1px solid rgba(15,30,51,0.12);
+    box-shadow: 0 2px 18px rgba(15,30,51,0.06);
+  }
+  html[data-theme="light"] .cn-bar.scrolled {
+    background: rgba(255,255,255,0.98);
+    border-color: rgba(15,30,51,0.14);
+    box-shadow: 0 2px 24px rgba(15,30,51,0.10);
+  }
+  html[data-theme="light"] .cn-brand-name { color: #0f1e33; }
+  html[data-theme="light"] .cn-brand-name span { color: #007a4d; }
+  html[data-theme="light"] .cn-links a { color: rgba(15,30,51,0.66); }
+  html[data-theme="light"] .cn-links a:hover { color: #0f1e33; background: rgba(15,30,51,0.05); }
+  html[data-theme="light"] .cn-links a.cn-active { color: #007a4d; background: rgba(0,122,77,0.09); }
+  html[data-theme="light"] .cn-sep { background: rgba(15,30,51,0.14); }
+  html[data-theme="light"] .cn-report {
+    color: #0f1e33; background: rgba(0,122,77,0.09);
+    border-color: rgba(0,122,77,0.32);
+  }
+  html[data-theme="light"] .cn-report:hover { background: rgba(0,122,77,0.15); color: #0f1e33; }
+  html[data-theme="light"] .cn-bell {
+    background: rgba(15,30,51,0.04); border-color: rgba(15,30,51,0.12);
+    color: rgba(15,30,51,0.60);
+  }
+  html[data-theme="light"] .cn-bell:hover { color: #0f1e33; background: rgba(15,30,51,0.07); }
+  html[data-theme="light"] .cn-user {
+    background: rgba(15,30,51,0.03); border-color: rgba(15,30,51,0.10);
+  }
+  html[data-theme="light"] .cn-user:hover { background: rgba(15,30,51,0.06); }
+  html[data-theme="light"] .cn-user-name { color: rgba(15,30,51,0.85); }
+  html[data-theme="light"] .cn-role-chip {
+    color: #007a4d; background: rgba(0,122,77,0.09);
+    border-color: rgba(0,122,77,0.28);
+  }
+  html[data-theme="light"] .cn-logout {
+    border-color: rgba(15,30,51,0.14); color: rgba(15,30,51,0.55);
+  }
+  html[data-theme="light"] .cn-logout:hover {
+    color: #b32323; background: rgba(179,35,35,0.07);
+    border-color: rgba(179,35,35,0.30);
+  }
+  html[data-theme="light"] .cn-ham span { background: rgba(15,30,51,0.65); }
+  html[data-theme="light"] .cn-overlay { background: rgba(15,30,51,0.38); }
+  html[data-theme="light"] .cn-drawer {
+    background: rgba(255,255,255,0.99);
+    border-left: 1px solid rgba(15,30,51,0.10);
+  }
+  html[data-theme="light"] .cn-drawer-close {
+    background: rgba(15,30,51,0.04); border-color: rgba(15,30,51,0.12);
+    color: rgba(15,30,51,0.55);
+  }
+  html[data-theme="light"] .cn-drawer-uname { color: #0f1e33; }
+  html[data-theme="light"] .cn-drawer-urole { color: rgba(15,30,51,0.55); }
+  html[data-theme="light"] .cn-drawer-nav a { color: rgba(15,30,51,0.68); }
+  html[data-theme="light"] .cn-drawer-nav a:hover { color: #0f1e33; background: rgba(15,30,51,0.05); }
+  html[data-theme="light"] .cn-drawer-nav a.cn-active { color: #007a4d; background: rgba(0,122,77,0.09); }
+  html[data-theme="light"] .cn-drawer-nav .cn-div { background: rgba(15,30,51,0.10); }
+  html[data-theme="light"] .cn-drawer-bell { color: rgba(15,30,51,0.68); }
+  html[data-theme="light"] .cn-drawer-bell:hover { color: #0f1e33; background: rgba(15,30,51,0.05); }
+  html[data-theme="light"] .cn-drawer-footer { border-top: 1px solid rgba(15,30,51,0.10); }
+  html[data-theme="light"] .cn-drawer-header,
+  html[data-theme="light"] .cn-drawer-user { border-bottom: 1px solid rgba(15,30,51,0.10); }
 `;
 
 interface CitizenNavbarProps {
@@ -594,8 +662,9 @@ function CitizenNavbar({
           </div>
         </div>
 
-        {/* ── Language switcher — mobile drawer ── */}
-        <div className="cn-drawer-lang">
+        {/* ── Theme + language switcher — mobile drawer ── */}
+        <div className="cn-drawer-lang" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <ThemeToggle compact />
           <LanguageSwitcherBadge />
         </div>
 
@@ -663,7 +732,8 @@ function CitizenNavbar({
 
         {/* Right cluster */}
         <div className="cn-right">
-          {/* Language switcher — hidden below 820px; the mobile drawer has its own copy */}
+          {/* Theme toggle + language — hidden below 820px; the mobile drawer has its own copy */}
+          <ThemeToggle compact />
           <div className="cn-lang-desktop">
             <LanguageSwitcherBadge />
           </div>
